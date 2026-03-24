@@ -1,0 +1,45 @@
+version: '3.8'
+
+services:
+  back:
+    image: ./backend
+    
+  mysql:
+    image: mysql:8.0
+    container_name: clinical-studio-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
+      MYSQL_DATABASE: ${DB_NAME}
+      MYSQL_USER: ${DB_USERNAME}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+    ports:
+      - '3307:3306'
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ['CMD', 'mysqladmin', 'ping', '-h', 'localhost']
+      timeout: 20s
+      retries: 10
+
+  presidio-analyzer:
+    image: mcr.microsoft.com/presidio-analyzer:latest
+    container_name: clinical-studio-presidio-analyzer
+    restart: unless-stopped
+    ports:
+      - '5001:3000'
+    # Presidio analyzer exposes a REST API on port 3000 inside the container
+    # POST /analyze  → returns list of RecognizerResult (entity type, score, start, end)
+
+  presidio-anonymizer:
+    image: mcr.microsoft.com/presidio-anonymizer:latest
+    container_name: clinical-studio-presidio-anonymizer
+    restart: unless-stopped
+    ports:
+      - '5002:3000'
+    # Presidio anonymizer exposes a REST API on port 3000 inside the container
+    # POST /anonymize → takes text + analyzer results → returns anonymized text
+
+volumes:
+  mysql_data:
+    driver: local
