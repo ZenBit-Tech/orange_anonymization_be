@@ -1,6 +1,6 @@
 # Clinical Data De-Identification & Synthetic Data Studio
 
-A full-stack learning project demonstrating HIPAA-compliant clinical text de-identification using **Microsoft Presidio**, built with React 18 + NestJS 10.
+
 
 ---
 

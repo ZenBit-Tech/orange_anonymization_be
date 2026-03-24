@@ -28,17 +28,14 @@ services:
     restart: unless-stopped
     ports:
       - '5001:3000'
-    # Presidio analyzer exposes a REST API on port 3000 inside the container
-    # POST /analyze  → returns list of RecognizerResult (entity type, score, start, end)
-
+  
   presidio-anonymizer:
     image: mcr.microsoft.com/presidio-anonymizer:latest
     container_name: clinical-studio-presidio-anonymizer
     restart: unless-stopped
     ports:
       - '5002:3000'
-    # Presidio anonymizer exposes a REST API on port 3000 inside the container
-    # POST /anonymize → takes text + analyzer results → returns anonymized text
+    
 
 volumes:
   mysql_data:
