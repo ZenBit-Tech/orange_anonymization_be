@@ -20,11 +20,8 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
     private readonly usersService: UsersService,
   ) {
     super({
-      // Extract the JWT from the Authorization header as a Bearer token
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
-      // Reject tokens whose exp claim has passed
       ignoreExpiration: false,
-      // Secret used to verify the token signature (must match AuthService.signToken)
       secretOrKey: configService.get<string>('jwt.secret') ?? '',
     });
   }

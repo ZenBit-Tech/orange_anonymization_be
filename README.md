@@ -1,255 +1,262 @@
-# Clinical Data De-Identification & Synthetic Data Studio
+# Clinical Data Studio — Backend Template
 
-
+Backend service for Clinical Data De-Identification & Synthetic Data Studio.
+Built with **NestJS 10 + TypeORM + MySQL + Microsoft Presidio**.
 
 ---
 
-## Architecture Overview
+## Architecture
 
 ```
-┌─────────────────────────┐     HTTP/JSON     ┌──────────────────────┐
-│   React 18 Frontend     │ ──────────────── │  NestJS 10 Backend   │
-│   Vite + TypeScript      │  :5173 → :3000   │  TypeScript + TypeORM│
-│   Redux Toolkit          │                   │  MySQL 8 (Docker)    │
-│   MUI + react-i18next    │                   │  Swagger /api/docs   │
-└─────────────────────────┘                   └──────────┬───────────┘
-                                                         │ HTTP
-                                              ┌──────────┴───────────┐
-                                              │  Presidio Services    │
-                                              │  (Docker containers)  │
-                                              │  analyzer   :5001     │
-                                              │  anonymizer :5002     │
-                                              └──────────┬────────────┘
-                                                         │
-                                              ┌──────────┴───────────┐
-                                              │  MySQL :3307 (host)   │
-                                              │  :3306 (container)    │
-                                              └───────────────────────┘
+┌──────────────────┐     ┌───────────────────┐     ┌──────────────────┐
+│   React 18       │────>│   NestJS 10 API   │────>│  Presidio        │
+│   (separate repo)│<────│   TypeORM + MySQL  │<────│  analyzer :5001  │
+│                  │     │   Swagger /api/docs│     │  anonymizer:5002 │
+└──────────────────┘     └───────────────────┘     └──────────────────┘
+     Frontend                  This repo               Docker services
 ```
 
-## Project Structure
+---
 
-```
-study-presido/
-├── frontend/                      # React 18 + Vite + TypeScript
-│   └── src/
-│       ├── components/            # Shared UI components
-│       ├── hooks/                 # Custom hooks (useAuth, ...)
-│       ├── pages/                 # Route-level page components
-│       ├── store/slices/          # Redux Toolkit slices
-│       ├── locales/en/            # i18n translation strings
-│       └── routes/                # React Router + protected routes
-├── backend/                       # NestJS 10 + TypeORM + MySQL
-│   └── src/
-│       ├── modules/
-│       │   ├── auth/              # Magic link auth + JWT strategy
-│       │   ├── users/             # Users CRUD
-│       │   ├── de-identification/ # Presidio analyze + anonymize
-│       │   ├── synthetic-data/    # Fake PHI generation
-│       │   └── dashboard/         # Aggregated stats
-│       ├── common/                # Guards, decorators, filters
-│       ├── config/                # ConfigService configuration
-│       └── database/
-│           ├── data-source.ts     # TypeORM CLI data source
-│           ├── migrations/        # SQL migrations (run in prod)
-│           └── seeds/             # Initial data (admin user)
-├── docker-compose.yml             # MySQL + Presidio containers
-├── .github/
-│   └── pull_request_template.md
-└── README.md
-```
+## Tech Stack
+
+| Layer | Technology |
+|-------|-----------|
+| Framework | NestJS 10 + TypeScript (strict mode) |
+| ORM | TypeORM with MySQL 8 |
+| Auth | Magic Link + JWT (Passport) |
+| Validation | class-validator + class-transformer |
+| Docs | Swagger / OpenAPI |
+| Config | @nestjs/config (ConfigService) |
+| PII Detection | Microsoft Presidio (Docker) |
+| Testing | Jest |
 
 ---
 
 ## Quick Start
 
-### 1. Prerequisites
+### Prerequisites
 
 - Node.js 20+
 - Docker + Docker Compose
 
-### 2. Start infrastructure (MySQL + Presidio)
+### 1. Infrastructure
 
 ```bash
-# Copy environment files
+# From root directory
 cp backend/.env.example backend/.env
-cp frontend/.env.example frontend/.env
+# Edit backend/.env with your settings
 
-# Edit backend/.env with your settings, then:
-docker compose up -d
+docker compose up mysql presidio-analyzer presidio-anonymizer -d
 ```
 
-Wait for containers to be healthy (Presidio loads ML models, takes ~30 s on first start):
+Wait for containers to be healthy (~30s for Presidio to load ML models):
 
 ```bash
 docker compose ps
 ```
 
-### 3. Start the backend
+### 2. Backend
 
 ```bash
 cd backend
 npm install
 npm run start:dev
-# API:     http://localhost:3000
-# Swagger: http://localhost:3000/api/docs
 ```
 
-### 4. (Optional) Run migrations + seed
+- API: http://localhost:3000/api
+- Swagger: http://localhost:3000/api/docs
+
+### 3. Migrations & Seeds
 
 ```bash
-# Apply schema migrations (required when DB_SYNCHRONIZE=false in prod):
+# Apply schema (when DB_SYNCHRONIZE=false):
 npm run migration:run
 
-# Create the first admin user:
+# Create admin user:
 npm run db:seed
 ```
 
-### 5. Start the frontend
+---
 
-```bash
-cd frontend
-npm install
-npm run dev
-# App: http://localhost:5173
+## Project Structure
+
+```
+backend/
+├── src/
+│   ├── main.ts                          # Bootstrap, CORS, Swagger, ValidationPipe
+│   ├── app.module.ts                    # Root module, TypeORM + Config setup
+│   ├── config/
+│   │   └── configuration.ts             # Typed config (db, jwt, presidio, etc.)
+│   ├── common/
+│   │   └── guards/
+│   │       └── auth.guard.ts            # JWT auth guard
+│   ├── modules/
+│   │   ├── auth/                        # Magic link + JWT authentication
+│   │   │   ├── auth.controller.ts
+│   │   │   ├── auth.service.ts
+│   │   │   ├── auth.module.ts
+│   │   │   ├── strategies/jwt.strategy.ts
+│   │   │   └── dto/
+│   │   ├── users/                       # User CRUD
+│   │   │   ├── users.controller.ts
+│   │   │   ├── users.service.ts
+│   │   │   ├── entities/user.entity.ts  # UUID PK, @Index on email
+│   │   │   └── dto/
+│   │   ├── de-identification/           # Presidio integration
+│   │   │   ├── de-identification.controller.ts
+│   │   │   ├── de-identification.service.ts
+│   │   │   ├── presidio.service.ts      # HTTP client for Presidio
+│   │   │   ├── entities/document.entity.ts
+│   │   │   └── dto/
+│   │   ├── synthetic-data/              # Synthetic data generation
+│   │   │   ├── synthetic-data.controller.ts
+│   │   │   ├── synthetic-data.service.ts
+│   │   │   ├── entities/synthetic-record.entity.ts
+│   │   │   └── dto/
+│   │   └── dashboard/                   # Aggregated metrics
+│   │       ├── dashboard.controller.ts
+│   │       └── dashboard.service.ts
+│   └── database/
+│       ├── data-source.ts               # TypeORM CLI data source
+│       ├── migrations/                  # SQL schema migrations
+│       └── seeds/                       # Initial data
+├── docker-compose.yml                   # MySQL + Presidio containers
+├── Dockerfile                           # Production build (node:20-alpine)
+├── .env.example
+├── .eslintrc.cjs
+├── .prettierrc
+├── tsconfig.json
+└── package.json
 ```
 
 ---
 
-## Testing
+## API Endpoints
 
-### Unit tests (Jest — mocked repository/service layer)
+| Method | Endpoint | Description | Auth |
+|--------|----------|-------------|------|
+| POST | /api/auth/magic-link | Request magic link | No |
+| POST | /api/auth/verify | Verify token, get JWT | No |
+| GET | /api/users | List users | JWT |
+| GET | /api/users/me | Current user profile | JWT |
+| GET | /api/users/:id | User by ID | JWT |
+| PATCH | /api/users/:id | Update user | JWT |
+| DELETE | /api/users/:id | Delete user | JWT |
+| POST | /api/de-identification/analyze | Analyze text for PII | JWT |
+| POST | /api/de-identification/anonymize | Anonymize text | JWT |
+| GET | /api/de-identification/documents | User documents | JWT |
+| POST | /api/synthetic-data/generate | Generate synthetic data | JWT |
+| GET | /api/dashboard | Dashboard metrics | JWT |
 
-```bash
-cd backend
-npm test              # run all *.spec.ts
-npm run test:cov      # with coverage report
-```
-
-### Smoke tests (real HTTP against running server)
-
-Requires the backend and Docker stack to be running:
-
-```bash
-cd backend
-npm run test:smoke
-```
-
-The smoke test:
-1. Calls `POST /api/auth/magic-link`
-2. Reads the magic link token directly from MySQL via `docker exec`
-3. Calls `POST /api/auth/verify` → gets a JWT
-4. Hits every protected endpoint and asserts 200/201/204
+Full documentation with request/response schemas: http://localhost:3000/api/docs
 
 ---
 
-## Authentication Flow (Magic Link)
+## Authentication Flow
 
 ```
 1. POST /api/auth/magic-link  { email }
-   → Creates/finds user, generates UUID token, logs magic link URL to console
+   → Creates/finds user, generates UUID token (expires in 15 min)
 
-2. [dev] Open link: http://localhost:5173/auth/verify?token=<uuid>
-   → Frontend reads ?token= from URL, calls POST /api/auth/verify
+2. User clicks link: /auth/verify?token=<uuid>
+   → Frontend calls POST /api/auth/verify { token }
 
-3. POST /api/auth/verify  { token }
-   → Validates token + expiry, clears token (one-time use), returns JWT
+3. Backend validates token + expiry, clears token (one-time use)
+   → Returns JWT (session: 1 hour)
 
-4. Frontend stores JWT in Redux + localStorage
-   → All subsequent requests: Authorization: Bearer <jwt>
+4. All subsequent requests: Authorization: Bearer <jwt>
 ```
-
----
-
-## De-Identification Flow
-
-```
-1. POST /api/de-identification/analyze
-   Body: { text, language, entities[] }
-   → NestJS proxies to presidio-analyzer (port 5001)
-   → Returns: [{ entity_type, start, end, score }]
-
-2. POST /api/de-identification/anonymize
-   Body: { text, analyzerResults[], strategy }
-   → NestJS proxies to presidio-anonymizer (port 5002)
-   → Returns: { text: "<anonymized>", items: [...] }
-   → Saves document to MySQL for audit trail
-```
-
-Available anonymization strategies: `replace` · `redact` · `hash` · `mask`
 
 ---
 
 ## Environment Variables
 
-See `backend/.env.example` and `frontend/.env.example` for all required variables.
-
-Key backend variables:
-
-| Variable | Default | Notes |
-|---|---|---|
-| `DB_SYNCHRONIZE` | `true` | Set `false` in prod; use `npm run migration:run` instead |
-| `JWT_SECRET` | — | Must be a long random string in production |
-| `PRESIDIO_ANALYZER_URL` | `http://localhost:5001` | |
-| `PRESIDIO_ANONYMIZER_URL` | `http://localhost:5002` | |
-| `SEED_ADMIN_EMAIL` | `admin@clinical-studio.local` | Used by `npm run db:seed` |
-
----
-
-## API Documentation
-
-Once the backend is running:
-
-- **Swagger UI**: http://localhost:3000/api/docs
-- **OpenAPI JSON**: http://localhost:3000/api/docs-json
+| Variable | Default | Required | Description |
+|----------|---------|----------|-------------|
+| NODE_ENV | development | | Environment |
+| PORT | 3000 | | Server port |
+| DB_HOST | localhost | Yes | MySQL host |
+| DB_PORT | 3306 | Yes | MySQL port |
+| DB_USERNAME | clinical_user | Yes | MySQL user |
+| DB_PASSWORD | | Yes | MySQL password |
+| DB_NAME | clinical_studio | Yes | Database name |
+| DB_SYNCHRONIZE | true | | Auto-sync schema (false in prod) |
+| JWT_SECRET | | Yes | JWT signing secret (64+ chars) |
+| JWT_EXPIRES_IN | 1h | | JWT token lifetime |
+| MAGIC_LINK_EXPIRES_IN | 900 | | Magic link TTL in seconds |
+| ENCRYPTION_KEY | | Yes | AES-128 key (16 chars) |
+| PRESIDIO_ANALYZER_URL | http://localhost:5001 | | Presidio analyzer |
+| PRESIDIO_ANONYMIZER_URL | http://localhost:5002 | | Presidio anonymizer |
+| CORS_ORIGIN | http://localhost:5173 | | Frontend URL |
 
 ---
 
-## Key Learning Concepts
+## Code Quality Rules (PR Checklist)
 
-### Frontend
+### General
+- No `any` types — enforced by ESLint
+- No `process.env` directly — use `ConfigService`
+- No `console.log` — use NestJS `Logger`
+- No magic numbers — use named constants
+- No commented-out code
+- Conventional Commits (`feat:`, `fix:`, `chore:`, `refactor:`)
+- Import order: node_modules → absolute (@/) → relative
 
-| Concept | Where to look |
-|---|---|
-| Redux Toolkit slices | `frontend/src/store/slices/` |
-| Async thunks (API calls) | `authSlice.ts` → `requestMagicLink` thunk |
-| React Hook Form + Yup validation | `Auth.tsx`, `SyntheticData.tsx` |
-| MUI theming | `src/styles/theme.ts` |
-| i18n with react-i18next | `src/i18n.ts`, `src/locales/en/translation.json` |
-| Protected routes | `src/routes/ProtectedRoute.tsx` |
-| Custom hooks | `src/hooks/useAuth.ts` |
-| ErrorBoundary (class component) | `src/components/ErrorBoundary/` |
-| Recharts | `Dashboard.tsx` |
-| Lazy loading routes | `src/routes/index.tsx` |
-
-### Backend
-
-| Concept | Where to look |
-|---|---|
-| NestJS module system | `app.module.ts` |
-| ConfigService (never `process.env`) | `config/configuration.ts`, any service |
-| class-validator DTOs | `de-identification/dto/analyze-text.dto.ts` |
-| TypeORM entity with UUID PK | `users/entities/user.entity.ts` |
-| Magic link auth | `auth/auth.service.ts` |
-| JWT strategy (Passport) | `auth/strategies/jwt.strategy.ts` |
-| Custom param decorator | `common/decorators/current-user.decorator.ts` |
-| Global exception filter | `common/filters/http-exception.filter.ts` |
-| Presidio HTTP proxy | `de-identification/presidio.service.ts` |
-| TypeORM migrations | `database/migrations/` + `npm run migration:run` |
-| Database seed | `database/seeds/seed.ts` + `npm run db:seed` |
-| Swagger decorators | Any controller file |
-| Unit tests (Jest) | `**/*.spec.ts` files |
-| Smoke tests | `test/smoke.ts` + `npm run test:smoke` |
+### Backend-Specific
+- Swagger docs for every endpoint (2xx, 4xx, 5xx)
+- UUID primary keys on all entities
+- `@Index` on frequently queried columns
+- Transactions for multi-table mutations
+- `public` only for externally used methods
+- REST API naming conventions
+- Unit tests for services
 
 ---
 
-## Code Quality Rules
+## Testing
 
-- **No `any` types** — enforced by TypeScript `strict: true` + ESLint
-- **No hardcoded strings in React** — all text via `t('key')` (react-i18next)
-- **No `process.env` directly in backend** — use `ConfigService`
-- **UUID primary keys** on all entities (prevents enumeration attacks)
-- **`@Index` on lookup columns** — email, userId, magicLinkToken
-- **Magic link tokens excluded from default SELECT** — `select: false` on `magicLinkToken`
-- **Prettier** enforces consistent formatting (`npm run format`)
-- **Conventional Commits** for all commit messages
+```bash
+npm test              # Unit tests (Jest)
+npm run test:cov      # With coverage
+npm run test:smoke    # Integration (requires running server + Docker)
+```
+
+---
+
+## Docker
+
+```bash
+# Start all services
+docker compose up -d
+
+# Only infrastructure (without backend container)
+docker compose up mysql presidio-analyzer presidio-anonymizer -d
+
+# Check status
+docker compose ps
+
+# View logs
+docker compose logs -f mysql
+```
+
+---
+
+## Scripts
+
+| Command | Description |
+|---------|-------------|
+| `npm run start:dev` | Development with hot-reload |
+| `npm run build` | Production build |
+| `npm run start:prod` | Run production build |
+| `npm run lint` | ESLint check |
+| `npm run format` | Prettier format |
+| `npm test` | Run unit tests |
+| `npm run test:cov` | Tests with coverage |
+| `npm run migration:run` | Apply migrations |
+| `npm run migration:generate` | Generate migration from entity changes |
+| `npm run db:seed` | Seed admin user |
+
+
+
+

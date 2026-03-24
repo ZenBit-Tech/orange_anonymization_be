@@ -1,7 +1,4 @@
-/**
- * AuthService — Magic Link Authentication
- * Sooner there will be additional logic for login adn register
- */
+
 import {
   Injectable,
   Logger,

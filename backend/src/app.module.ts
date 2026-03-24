@@ -1,17 +1,7 @@
-/**
- * AppModule — root module
- *
- * Imports are ordered from infrastructure → feature modules:
- *   1. ConfigModule  — loads .env, makes ConfigService available everywhere
- *   2. TypeOrmModule — database connection
- *   3. Feature modules
- *
- * Global providers (HttpExceptionFilter) are registered here.
- */
+
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { APP_FILTER } from '@nestjs/core';
 import configuration from './config/configuration';
 import { TestDbModule } from "../src/database/test.module"
 // Feature modules
