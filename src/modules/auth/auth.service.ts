@@ -24,12 +24,7 @@ export class AuthService {
   async verifyMagicLink(token: string) {
    
   }
-  async login(){
-
-  }
-  async register(){
-
-  }
+  
   getProfile(userId: string): Promise<User> {
     return this.usersService.findOne(userId);
   }
