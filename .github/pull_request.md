@@ -1,13 +1,15 @@
 #######################################
-new word_counts table created
+new template structure 
 ######################################
-it is supposed to store count of all terms for each user
+now there only 3 modules remains
+
+auth: includes auth,users and dashboard services
+
+persidio: includes de-identification and synthetic-data services
+Responsible for communication with persidio services: de-identification and synthetic data 
+
+
+file-upload: all file uploading possible via this module
 ######################################
-insert/update example:
-    insert into word_counts (user_id,word,count) values ('user_id','word','new_count')
-    on dublicate key update 
-    count = count + new_count
-######################################
-dashboard query:
-    select word,count from word_counts where user_id = 'user_id';
+
     
