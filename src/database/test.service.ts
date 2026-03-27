@@ -1,6 +1,6 @@
 import { Injectable, Logger, OnModuleInit } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
-import {User } from "../modules/users/entities/user.entity"
+import {User } from "../modules/auth/entities/user.entity"
 import { Repository } from "typeorm";
 
 @Injectable()

@@ -2,7 +2,7 @@
 import 'reflect-metadata';
 import { DataSource } from 'typeorm';
 import * as dotenv from 'dotenv';
-import { User } from '../modules/users/entities/user.entity';
+import { User } from '../modules/auth/entities/user.entity';
 import { Document } from '../modules/de-identification/entities/document.entity';
 import { SyntheticRecord } from '../modules/synthetic-data/entities/synthetic-record.entity';
 

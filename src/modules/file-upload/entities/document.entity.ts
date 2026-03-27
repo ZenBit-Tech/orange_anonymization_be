@@ -6,7 +6,7 @@ import {
   ManyToOne,
   PrimaryGeneratedColumn,
 } from 'typeorm';
-import type { User } from '@/modules/users/entities/user.entity';
+import type { User } from '@/modules/auth/entities/user.entity';
 
 export type DocumentStatus = 'pending' | 'processing' | 'completed' | 'failed';
 export type ComplianceFramework = 'hipaa' | 'gdpr' | 'custom';

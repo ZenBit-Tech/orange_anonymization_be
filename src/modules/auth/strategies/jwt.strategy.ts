@@ -3,7 +3,7 @@ import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { ConfigService } from '@nestjs/config';
-import { UsersService } from '@/modules/users/users.service';
+import { UsersService } from '@/modules/auth/services/users.service';
 
 export interface JwtPayload {
   sub: string;    // subject = user UUID

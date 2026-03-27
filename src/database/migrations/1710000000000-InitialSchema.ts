@@ -53,6 +53,16 @@ export class InitialSchema1710000000000 implements MigrationInterface {
         INDEX \`IDX_synthetic_records_userId\` (\`userId\`)
       ) ENGINE=InnoDB
     `);
+    await queryRunner.query(`
+        create table word_counts(
+        user_id varchar(36),
+        word varchar(20),
+        count int,
+        primary key (user_id,word)
+        )
+      `)
+      //query for dashboard : select word,count from word_counts where user_id = id
+      // returning table : WORD:COUNT
   }
 
   async down(queryRunner: QueryRunner): Promise<void> {

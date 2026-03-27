@@ -1,9 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import type { Repository } from 'typeorm';
-import { Document } from './entities/document.entity';
-import { PresidioService } from './presidio.service';
-import type { AnalyzeTextDto } from './dto/analyze-text.dto';
+import { Document } from '../entities/document.entity';
+import { PresidioService } from '../presidio.service';
+import type { AnalyzeTextDto } from '../dto/analyze-text.dto';
 
 @Injectable()
 export class DeIdentificationService {

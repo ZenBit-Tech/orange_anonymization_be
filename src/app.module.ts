@@ -12,7 +12,7 @@ import { SyntheticDataModule } from './modules/synthetic-data/synthetic-data.mod
 import { DashboardModule } from './modules/dashboard/dashboard.module';
 
 // Entities — TypeORM needs to know about all entities for auto-migrations
-import { User } from './modules/users/entities/user.entity';
+import { User } from './modules/auth/entities/user.entity';
 import { Document } from './modules/de-identification/entities/document.entity';
 import { SyntheticRecord } from './modules/synthetic-data/entities/synthetic-record.entity';
 

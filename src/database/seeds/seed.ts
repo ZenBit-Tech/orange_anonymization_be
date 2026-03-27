@@ -2,7 +2,7 @@
 import 'reflect-metadata';
 import * as dotenv from 'dotenv';
 import { AppDataSource } from '../data-source';
-import { User } from '../../modules/users/entities/user.entity';
+import { User } from '../../modules/auth/entities/user.entity';
 
 dotenv.config();
 
