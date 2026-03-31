@@ -1,262 +1,98 @@
-# Clinical Data Studio — Backend Template
+<p align="center">
+  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
+</p>
 
-Backend service for Clinical Data De-Identification & Synthetic Data Studio.
-Built with **NestJS 10 + TypeORM + MySQL + Microsoft Presidio**.
+[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
+[circleci-url]: https://circleci.com/gh/nestjs/nest
 
----
+  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
+    <p align="center">
+<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
+<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
+<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
+<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
+<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
+<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
+<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
+  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
+    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
+  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
+</p>
+  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
+  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
 
-## Architecture
+## Description
 
-```
-┌──────────────────┐     ┌───────────────────┐     ┌──────────────────┐
-│   React 18       │────>│   NestJS 10 API   │────>│  Presidio        │
-│   (separate repo)│<────│   TypeORM + MySQL  │<────│  analyzer :5001  │
-│                  │     │   Swagger /api/docs│     │  anonymizer:5002 │
-└──────────────────┘     └───────────────────┘     └──────────────────┘
-     Frontend                  This repo               Docker services
-```
+[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
 
----
-
-## Tech Stack
-
-| Layer | Technology |
-|-------|-----------|
-| Framework | NestJS 10 + TypeScript (strict mode) |
-| ORM | TypeORM with MySQL 8 |
-| Auth | Magic Link + JWT (Passport) |
-| Validation | class-validator + class-transformer |
-| Docs | Swagger / OpenAPI |
-| Config | @nestjs/config (ConfigService) |
-| PII Detection | Microsoft Presidio (Docker) |
-| Testing | Jest |
-
----
-
-## Quick Start
-
-### Prerequisites
-
-- Node.js 20+
-- Docker + Docker Compose
-
-### 1. Infrastructure
+## Project setup
 
 ```bash
-# From root directory
-cp backend/.env.example backend/.env
-# Edit backend/.env with your settings
-
-docker compose up mysql presidio-analyzer presidio-anonymizer -d
+$ npm install
 ```
 
-Wait for containers to be healthy (~30s for Presidio to load ML models):
+## Compile and run the project
 
 ```bash
-docker compose ps
+# development
+$ npm run start
+
+# watch mode
+$ npm run start:dev
+
+# production mode
+$ npm run start:prod
 ```
 
-### 2. Backend
+## Run tests
 
 ```bash
-cd backend
-npm install
-npm run start:dev
+# unit tests
+$ npm run test
+
+# e2e tests
+$ npm run test:e2e
+
+# test coverage
+$ npm run test:cov
 ```
 
-- API: http://localhost:3000/api
-- Swagger: http://localhost:3000/api/docs
+## Deployment
 
-### 3. Migrations & Seeds
+When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
+
+If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
 
 ```bash
-# Apply schema (when DB_SYNCHRONIZE=false):
-npm run migration:run
-
-# Create admin user:
-npm run db:seed
+$ npm install -g @nestjs/mau
+$ mau deploy
 ```
 
----
+With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
 
-## Project Structure
+## Resources
 
-```
-backend/
-├── src/
-│   ├── main.ts                          # Bootstrap, CORS, Swagger, ValidationPipe
-│   ├── app.module.ts                    # Root module, TypeORM + Config setup
-│   ├── config/
-│   │   └── configuration.ts             # Typed config (db, jwt, presidio, etc.)
-│   ├── common/
-│   │   └── guards/
-│   │       └── auth.guard.ts            # JWT auth guard
-│   ├── modules/
-│   │   ├── auth/                        # Magic link + JWT authentication
-│   │   │   ├── auth.controller.ts
-│   │   │   ├── auth.service.ts
-│   │   │   ├── auth.module.ts
-│   │   │   ├── strategies/jwt.strategy.ts
-│   │   │   └── dto/
-│   │   ├── users/                       # User CRUD
-│   │   │   ├── users.controller.ts
-│   │   │   ├── users.service.ts
-│   │   │   ├── entities/user.entity.ts  # UUID PK, @Index on email
-│   │   │   └── dto/
-│   │   ├── de-identification/           # Presidio integration
-│   │   │   ├── de-identification.controller.ts
-│   │   │   ├── de-identification.service.ts
-│   │   │   ├── presidio.service.ts      # HTTP client for Presidio
-│   │   │   ├── entities/document.entity.ts
-│   │   │   └── dto/
-│   │   ├── synthetic-data/              # Synthetic data generation
-│   │   │   ├── synthetic-data.controller.ts
-│   │   │   ├── synthetic-data.service.ts
-│   │   │   ├── entities/synthetic-record.entity.ts
-│   │   │   └── dto/
-│   │   └── dashboard/                   # Aggregated metrics
-│   │       ├── dashboard.controller.ts
-│   │       └── dashboard.service.ts
-│   └── database/
-│       ├── data-source.ts               # TypeORM CLI data source
-│       ├── migrations/                  # SQL schema migrations
-│       └── seeds/                       # Initial data
-├── docker-compose.yml                   # MySQL + Presidio containers
-├── Dockerfile                           # Production build (node:20-alpine)
-├── .env.example
-├── .eslintrc.cjs
-├── .prettierrc
-├── tsconfig.json
-└── package.json
-```
+Check out a few resources that may come in handy when working with NestJS:
 
----
+- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
+- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
+- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
+- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
+- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
+- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
+- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
+- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
 
-## API Endpoints
+## Support
 
-| Method | Endpoint | Description | Auth |
-|--------|----------|-------------|------|
-| POST | /api/auth/magic-link | Request magic link | No |
-| POST | /api/auth/verify | Verify token, get JWT | No |
-| GET | /api/users | List users | JWT |
-| GET | /api/users/me | Current user profile | JWT |
-| GET | /api/users/:id | User by ID | JWT |
-| PATCH | /api/users/:id | Update user | JWT |
-| DELETE | /api/users/:id | Delete user | JWT |
-| POST | /api/de-identification/analyze | Analyze text for PII | JWT |
-| POST | /api/de-identification/anonymize | Anonymize text | JWT |
-| GET | /api/de-identification/documents | User documents | JWT |
-| POST | /api/synthetic-data/generate | Generate synthetic data | JWT |
-| GET | /api/dashboard | Dashboard metrics | JWT |
+Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
 
-Full documentation with request/response schemas: http://localhost:3000/api/docs
+## Stay in touch
 
----
+- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
+- Website - [https://nestjs.com](https://nestjs.com/)
+- Twitter - [@nestframework](https://twitter.com/nestframework)
 
-## Authentication Flow
+## License
 
-```
-1. POST /api/auth/magic-link  { email }
-   → Creates/finds user, generates UUID token (expires in 15 min)
-
-2. User clicks link: /auth/verify?token=<uuid>
-   → Frontend calls POST /api/auth/verify { token }
-
-3. Backend validates token + expiry, clears token (one-time use)
-   → Returns JWT (session: 1 hour)
-
-4. All subsequent requests: Authorization: Bearer <jwt>
-```
-
----
-
-## Environment Variables
-
-| Variable | Default | Required | Description |
-|----------|---------|----------|-------------|
-| NODE_ENV | development | | Environment |
-| PORT | 3000 | | Server port |
-| DB_HOST | localhost | Yes | MySQL host |
-| DB_PORT | 3306 | Yes | MySQL port |
-| DB_USERNAME | clinical_user | Yes | MySQL user |
-| DB_PASSWORD | | Yes | MySQL password |
-| DB_NAME | clinical_studio | Yes | Database name |
-| DB_SYNCHRONIZE | true | | Auto-sync schema (false in prod) |
-| JWT_SECRET | | Yes | JWT signing secret (64+ chars) |
-| JWT_EXPIRES_IN | 1h | | JWT token lifetime |
-| MAGIC_LINK_EXPIRES_IN | 900 | | Magic link TTL in seconds |
-| ENCRYPTION_KEY | | Yes | AES-128 key (16 chars) |
-| PRESIDIO_ANALYZER_URL | http://localhost:5001 | | Presidio analyzer |
-| PRESIDIO_ANONYMIZER_URL | http://localhost:5002 | | Presidio anonymizer |
-| CORS_ORIGIN | http://localhost:5173 | | Frontend URL |
-
----
-
-## Code Quality Rules (PR Checklist)
-
-### General
-- No `any` types — enforced by ESLint
-- No `process.env` directly — use `ConfigService`
-- No `console.log` — use NestJS `Logger`
-- No magic numbers — use named constants
-- No commented-out code
-- Conventional Commits (`feat:`, `fix:`, `chore:`, `refactor:`)
-- Import order: node_modules → absolute (@/) → relative
-
-### Backend-Specific
-- Swagger docs for every endpoint (2xx, 4xx, 5xx)
-- UUID primary keys on all entities
-- `@Index` on frequently queried columns
-- Transactions for multi-table mutations
-- `public` only for externally used methods
-- REST API naming conventions
-- Unit tests for services
-
----
-
-## Testing
-
-```bash
-npm test              # Unit tests (Jest)
-npm run test:cov      # With coverage
-npm run test:smoke    # Integration (requires running server + Docker)
-```
-
----
-
-## Docker
-
-```bash
-# Start all services
-docker compose up -d
-
-# Only infrastructure (without backend container)
-docker compose up mysql presidio-analyzer presidio-anonymizer -d
-
-# Check status
-docker compose ps
-
-# View logs
-docker compose logs -f mysql
-```
-
----
-
-## Scripts
-
-| Command | Description |
-|---------|-------------|
-| `npm run start:dev` | Development with hot-reload |
-| `npm run build` | Production build |
-| `npm run start:prod` | Run production build |
-| `npm run lint` | ESLint check |
-| `npm run format` | Prettier format |
-| `npm test` | Run unit tests |
-| `npm run test:cov` | Tests with coverage |
-| `npm run migration:run` | Apply migrations |
-| `npm run migration:generate` | Generate migration from entity changes |
-| `npm run db:seed` | Seed admin user |
-
-
-
-
+Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
