@@ -10,15 +10,13 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   
   const configService = app.get(ConfigService);
-  const host = configService.get<string>("app.host") ?? "0.0.0.0"
-  const port = configService.get<number>('app.port') ?? 3000;
-  const corsOrigin = configService.get<string>('app.corsOrigin') ?? 'http://localhost:5173';
-  const nodeEnv = configService.get<string>('app.nodeEnv') ?? 'development';
+  const host = configService.get<string>("app.host") as string
+  const port = configService.get<number>('app.port') as number;
 
   // CORS 
   // Allow the React frontend (Vite dev server) to call this API.
   app.enableCors({
-    origin: corsOrigin,
+    origin: "*",
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
@@ -68,11 +66,8 @@ async function bootstrap() {
   });
 
   await app.listen(port,host);
-
-  logger.log(`🏥 Clinical Data Studio API running in ${nodeEnv} mode`);
   logger.log(`📡 Listening on port ${port}`);
   logger.log(`📖 Swagger UI: http://${host}:${port}/api/docs`);
-  logger.log(`🔑 CORS origin: ${corsOrigin}`);
 }
 
 void bootstrap();
