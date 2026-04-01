@@ -38,4 +38,18 @@ module.exports = {
     'no-console': ['warn', { allow: ['warn', 'error'] }],
     'prefer-const': 'error',
   },
+  overrides: [
+    {
+      files: ['src/config/**/*.ts', 'src/database/data-source.ts', 'src/database/seeds/seed.ts'],
+      rules: {
+        'no-restricted-syntax': 'off',
+      },
+    },
+    {
+      files: ['src/database/seeds/seed.ts'],
+      rules: {
+        'no-console': ['warn', { allow: ['warn', 'error', 'log'] }],
+      },
+    },
+  ],
 };

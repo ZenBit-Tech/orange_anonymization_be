@@ -1,5 +1,3 @@
-import { Controller,UseGuards } from "@nestjs/common";
+import { Controller } from '@nestjs/common';
 @Controller('file-upload')
-export class FileUploadController{
-
-}
+export class FileUploadController {}

@@ -1,31 +1,28 @@
-
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { MailerModule } from '@nestjs-modules/mailer';
 import configuration from './config/configuration';
-import { TestDbModule } from "./database/test.module"
+import { TestDbModule } from './database/test.module';
 // Feature modules
 import { AuthModule } from './modules/auth/auth.module';
-import { UsersModule } from './modules/users/users.module';
-import { DeIdentificationModule } from './modules/de-identification/de-identification.module';
-import { SyntheticDataModule } from './modules/synthetic-data/synthetic-data.module';
-import { DashboardModule } from './modules/dashboard/dashboard.module';
+import { FileUpload } from './modules/file-upload/file-upload.module';
+import { DeIdentificationModule } from './modules/presidio/persido.module';
 
 // Entities — TypeORM needs to know about all entities for auto-migrations
 import { User } from './modules/auth/entities/user.entity';
-import { Document } from './modules/de-identification/entities/document.entity';
-import { SyntheticRecord } from './modules/synthetic-data/entities/synthetic-record.entity';
+import { Document } from './modules/presidio/entities/document.entity';
 
 @Module({
   imports: [
-    //  Config 
+    //  Config
     ConfigModule.forRoot({
-      isGlobal: true,               // Global re-injectable config
-      load: [configuration],        
+      isGlobal: true, // Global re-injectable config
+      load: [configuration],
       envFilePath: '.env',
     }),
 
-    //  Database 
+    //  Database
     TypeOrmModule.forRootAsync({
       // registerAsync reads configuration AFTER ConfigModule has loaded .env
       imports: [ConfigModule],
@@ -37,7 +34,7 @@ import { SyntheticRecord } from './modules/synthetic-data/entities/synthetic-rec
         username: configService.get<string>('db.username'),
         password: configService.get<string>('db.password'),
         database: configService.get<string>('db.name'),
-        entities: [User, Document, SyntheticRecord],
+        entities: [User, Document],
         synchronize: configService.get<boolean>('db.synchronize') ?? false,
         logging: configService.get<boolean>('db.logging') ?? false,
         retryAttempts: 10,
@@ -45,15 +42,29 @@ import { SyntheticRecord } from './modules/synthetic-data/entities/synthetic-rec
       }),
     }),
 
-
-    // Feature Modules 
+    // Feature Modules
+    MailerModule.forRootAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: (configService: ConfigService) => ({
+        transport: {
+          host: configService.get<string>('mail.host') ?? 'smtp.gmail.com',
+          port: configService.get<number>('mail.port') ?? 587,
+          secure: false,
+          auth: {
+            user: configService.get<string>('mail.user') ?? '',
+            pass: configService.get<string>('mail.appPassword') ?? '',
+          },
+        },
+        defaults: {
+          from: configService.get<string>('mail.from') ?? '',
+        },
+      }),
+    }),
     AuthModule,
-    UsersModule,
+    FileUpload,
     DeIdentificationModule,
-    SyntheticDataModule,
-    DashboardModule,
-    TestDbModule
-  ]
-  
+    TestDbModule,
+  ],
 })
 export class AppModule {}

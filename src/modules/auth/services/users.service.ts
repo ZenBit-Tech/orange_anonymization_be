@@ -36,7 +36,6 @@ export class UsersService {
     return this.usersRepository.findOneBy({ email });
   }
 
-
   async findByEmailWithToken(email: string): Promise<User | null> {
     return this.usersRepository
       .createQueryBuilder('user')
@@ -61,11 +60,7 @@ export class UsersService {
     return this.usersRepository.save(user);
   }
 
-  async setMagicLinkToken(
-    userId: string,
-    token: string,
-    expiresAt: Date,
-  ): Promise<void> {
+  async setMagicLinkToken(userId: string, token: string, expiresAt: Date): Promise<void> {
     await this.usersRepository.update(userId, {
       magicLinkToken: token,
       magicLinkExpiresAt: expiresAt,

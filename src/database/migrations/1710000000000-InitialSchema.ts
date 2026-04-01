@@ -60,9 +60,9 @@ export class InitialSchema1710000000000 implements MigrationInterface {
         count int,
         primary key (user_id,word)
         )
-      `)
-      //query for dashboard : select word,count from word_counts where user_id = id
-      // returning table : WORD:COUNT
+      `);
+    //query for dashboard : select word,count from word_counts where user_id = id
+    // returning table : WORD:COUNT
   }
 
   async down(queryRunner: QueryRunner): Promise<void> {

@@ -13,7 +13,7 @@ import {
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
-import type { Document } from '@/modules/de-identification/entities/document.entity';
+import type { Document } from '@/modules/presidio/entities/document.entity';
 
 export type UserRole = 'admin' | 'analyst' | 'viewer';
 
@@ -22,9 +22,9 @@ export class User {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column({ unique: true })   
+  @Column({ unique: true })
   email: string;
- 
+
   @Column({ type: 'varchar', nullable: true })
   firstName: string | null;
 
@@ -38,7 +38,7 @@ export class User {
   })
   role: UserRole;
 
-  @Column({ type: 'varchar', nullable: true, select: false })   
+  @Column({ type: 'varchar', nullable: true, select: false })
   magicLinkToken: string | null;
 
   @Column({ nullable: true, type: 'datetime', select: false })

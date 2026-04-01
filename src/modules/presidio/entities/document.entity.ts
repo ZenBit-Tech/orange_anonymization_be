@@ -49,8 +49,6 @@ export class Document {
   })
   framework: ComplianceFramework;
 
-  
-
   @CreateDateColumn()
   createdAt: Date;
 }

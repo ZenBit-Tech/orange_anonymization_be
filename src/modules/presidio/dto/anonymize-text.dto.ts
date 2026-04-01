@@ -23,7 +23,7 @@ export class AnalyzerResultItemDto {
   @IsNumber()
   score: number;
 
-  @IsOptional()  
+  @IsOptional()
   analysis_explanation: unknown;
 }
 

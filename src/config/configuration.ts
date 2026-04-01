@@ -1,11 +1,9 @@
-
 export default () => ({
   app: {
-    host: process.env.HOST ?? "get host error",
+    host: process.env.HOST ?? 'get host error',
     port: parseInt(process.env.PORT ?? 'get port error', 10),
     nodeEnv: process.env.NODE_ENV ?? 'get nodeEnv error',
     corsOrigin: process.env.CORS_ORIGIN ?? 'get cors error',
-
   },
   db: {
     host: process.env.DB_HOST ?? 'get db host error',
@@ -28,14 +26,17 @@ export default () => ({
     anonymizerUrl: process.env.PRESIDIO_ANONYMIZER_URL ?? 'annonymizer url error',
   },
   encryption: {
-    
     key: process.env.ENCRYPTION_KEY ?? 'get enc_key error',
   },
   mail: {
-    from: process.env.MAIL_FROM ?? 'get mail error',
+    host: process.env.MAIL_HOST ?? 'smtp.gmail.com',
+    port: parseInt(process.env.MAIL_PORT ?? '587', 10),
+    user: process.env.MAIL_USER ?? '',
+    appPassword: process.env.MAIL_APP_PASSWORD ?? '',
+    from: process.env.MAIL_FROM ?? process.env.MAIL_USER ?? '',
   },
-  seed:{
-    adminEmail:process.env.SEED_ADMIN_EMAIL ?? "get admin email error",
-    run:process.env.RUN_SEEDS ?? 'run_seed error'
-  }
+  seed: {
+    adminEmail: process.env.SEED_ADMIN_EMAIL ?? 'get admin email error',
+    run: process.env.RUN_SEEDS ?? 'run_seed error',
+  },
 });

@@ -2,7 +2,6 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { HttpModule } from '@nestjs/axios';
 import { Document } from './entities/document.entity';
-import { DeIdentificationService } from './services/de-identification.service';
 import { FileUploadService } from './file-upload.service';
 import { FileUploadController } from './file-upload.controller';
 
