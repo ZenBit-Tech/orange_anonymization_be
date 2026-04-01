@@ -18,7 +18,6 @@ export class AuthController {
   @Post()
   @ApiCreatedResponse({ type: User, description: 'Create a new user' })
   createUser(@Body() dto: CreateUserDto): Promise<User> {
-    // ...
-    return Promise.resolve({ id: 'uuid', ...dto } as User);
+    return this.authService.create(dto);
   }
 }
