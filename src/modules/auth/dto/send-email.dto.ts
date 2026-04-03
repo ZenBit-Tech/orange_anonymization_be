@@ -1,9 +1,9 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { IsEmail, IsOptional } from 'class-validator';
 
-export class TestEmailDto {
+export class SendEmailDto {
   @ApiPropertyOptional({
-    description: 'Optional receiver for test email. MAIL_USER will be used by default.',
+    description: 'Optional receiver for email. MAIL_USER will be used by default.',
     example: 'developer@example.com',
   })
   @IsOptional()
