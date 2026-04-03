@@ -1,7 +1,8 @@
-
 import 'reflect-metadata';
 import { DataSource } from 'typeorm';
 import * as dotenv from 'dotenv';
+import { User } from '../modules/auth/entities/user.entity';
+import { Document } from '../modules/presidio/entities/document.entity';
 
 dotenv.config();
 
@@ -12,8 +13,8 @@ export const AppDataSource = new DataSource({
   username: process.env.DB_USERNAME ?? 'root',
   password: process.env.DB_PASSWORD,
   database: process.env.DB_NAME ?? 'clinical_studio',
-  entities: [],
+  entities: [User, Document],
   migrations: [__dirname + '/migrations/*{.ts,.js}'],
-  synchronize: false,  
+  synchronize: false,
   logging: false,
 });
