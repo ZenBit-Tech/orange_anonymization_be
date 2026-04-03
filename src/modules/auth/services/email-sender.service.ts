@@ -37,7 +37,9 @@ export class EmailSenderService {
   }
 
   async sendMagicLink(email: string, token: string): Promise<void> {
-    const verifyUrl = `http://localhost:3000/token/${token}`;
+    const appHost = this.configService.get<string>('app.host') ?? 'localhost';
+    const appPort = this.configService.get<number>('app.port') ?? 3000;
+    const verifyUrl = `http://${appHost}:${appPort}/token/${token}`;
     const html = `
       <div style="margin:0;padding:24px;background:#f3f4f6;font-family:Arial,Helvetica,sans-serif;color:#1f2937;">
         <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="max-width:640px;margin:0 auto;background:#ffffff;border-radius:12px;overflow:hidden;">
