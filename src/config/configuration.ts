@@ -20,6 +20,7 @@ export default () => ({
     port: toInt(process.env.PORT, DEFAULT_APP_PORT),
     corsOrigin: process.env.CORS_ORIGIN ?? DEFAULT_CORS_ORIGIN,
     nodeEnv: process.env.NODE_ENV ?? NODE_ENV_DEVELOPMENT,
+    frontendUrl: process.env.FRONTEND_URL ?? '',
   },
   db: {
     host: process.env.DB_HOST ?? 'localhost',
@@ -45,5 +46,6 @@ export default () => ({
     port: toInt(process.env.MAIL_PORT, DEFAULT_MAIL_PORT),
     user: process.env.MAIL_USER ?? '',
     pass: process.env.MAIL_PASS ?? '',
+    from: process.env.MAIL_FROM ?? process.env.MAIL_USER ?? '',
   },
 });
