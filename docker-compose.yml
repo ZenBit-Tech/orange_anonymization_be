@@ -2,8 +2,21 @@ version: '3.8'
 
 services:
   back:
-    image: ./backend
-    
+    build: .
+    container_name: clinical-studio-back
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      DB_HOST: mysql
+      DB_PORT: 3306
+    ports:
+      - '${PORT:-3000}:3000'
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - clinical-studio-network
+
   mysql:
     image: mysql:8.0
     container_name: clinical-studio-mysql
@@ -19,8 +32,11 @@ services:
       - mysql_data:/var/lib/mysql
     healthcheck:
       test: ['CMD', 'mysqladmin', 'ping', '-h', 'localhost']
+      interval: 10s
       timeout: 20s
       retries: 10
+    networks:
+      - clinical-studio-network
 
   presidio-analyzer:
     image: mcr.microsoft.com/presidio-analyzer:latest
@@ -28,15 +44,22 @@ services:
     restart: unless-stopped
     ports:
       - '5001:3000'
-  
+    networks:
+      - clinical-studio-network
+
   presidio-anonymizer:
     image: mcr.microsoft.com/presidio-anonymizer:latest
     container_name: clinical-studio-presidio-anonymizer
     restart: unless-stopped
     ports:
       - '5002:3000'
-    
+    networks:
+      - clinical-studio-network
 
 volumes:
   mysql_data:
     driver: local
+
+networks:
+  clinical-studio-network:
+    driver: bridge
