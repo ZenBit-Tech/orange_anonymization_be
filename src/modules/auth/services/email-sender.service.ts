@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { MailerService } from '@nestjs-modules/mailer';
 import { ConfigService } from '@nestjs/config';
+import * as _ from 'lodash';
 import { EMAIL_CONSTANTS } from '../constants/email.constants';
 
 export interface ContactFormDetails {
@@ -19,17 +20,6 @@ export class EmailSenderService {
     private readonly mailerService: MailerService,
     private readonly configService: ConfigService,
   ) {}
-
-  private escapeHtml(text: string): string {
-    const map: { [key: string]: string } = {
-      '&': '&amp;',
-      '<': '&lt;',
-      '>': '&gt;',
-      '"': '&quot;',
-      "'": '&#039;',
-    };
-    return text.replace(/[&<>"']/g, (m) => map[m]);
-  }
 
   private async sendRawEmail(to: string, subject: string, html: string): Promise<void> {
     try {
@@ -112,12 +102,12 @@ export class EmailSenderService {
       const html = `
       <div>
         <h3>New Contact Form Submission</h3>
-        <p><b>First name:</b> ${this.escapeHtml(details.firstName)}</p>
-        <p><b>Last name:</b> ${this.escapeHtml(details.lastName)}</p>
-        <p><b>Email:</b> ${this.escapeHtml(details.email)}</p>
-        <p><b>Company:</b> ${details.company ? this.escapeHtml(details.company) : EMAIL_CONSTANTS.CONTACT_FORM_DEFAULT_COMPANY}</p>
+        <p><b>First name:</b> ${_.escape(details.firstName)}</p>
+        <p><b>Last name:</b> ${_.escape(details.lastName)}</p>
+        <p><b>Email:</b> ${_.escape(details.email)}</p>
+        <p><b>Company:</b> ${details.company ? _.escape(details.company) : EMAIL_CONSTANTS.CONTACT_FORM_DEFAULT_COMPANY}</p>
         <p><b>Message:</b></p>
-        <p>${this.escapeHtml(details.message)}</p>
+        <p>${_.escape(details.message)}</p>
       </div>
     `;
 
