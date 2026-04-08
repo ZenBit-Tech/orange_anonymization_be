@@ -8,16 +8,13 @@ const DB_RETRY_DELAY = 3_000;
 
 @Module({
   imports: [
-    //  Config
     ConfigModule.forRoot({
-      isGlobal: true, // Global re-injectable config
+      isGlobal: true,
       load: [configuration],
       envFilePath: '.env',
     }),
 
-    //  Database
     TypeOrmModule.forRootAsync({
-      // registerAsync reads configuration AFTER ConfigModule has loaded .env
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => ({

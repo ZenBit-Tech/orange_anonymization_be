@@ -2,10 +2,6 @@
 const DEFAULT_APP_PORT = 3000;
 const DEFAULT_DB_PORT = 3306;
 const DEFAULT_MAIL_PORT = 587;
-const DEFAULT_CORS_ORIGIN = 'http://localhost:5173';
-const DEFAULT_PRESIDIO_ANALYZER_URL = 'http://localhost:5001';
-const DEFAULT_PRESIDIO_ANONYMIZER_URL = 'http://localhost:5002';
-const NODE_ENV_DEVELOPMENT = 'development';
 
 const toInt = (value: string | undefined, fallback: number): number => {
   const parsed = Number.parseInt(value ?? '', 10);
@@ -18,8 +14,8 @@ export default () => ({
   app: {
     host: process.env.HOST ?? '0.0.0.0',
     port: toInt(process.env.PORT, DEFAULT_APP_PORT),
-    corsOrigin: process.env.CORS_ORIGIN ?? DEFAULT_CORS_ORIGIN,
-    nodeEnv: process.env.NODE_ENV ?? NODE_ENV_DEVELOPMENT,
+    corsOrigin: process.env.CORS_ORIGIN ?? '',
+    nodeEnv: process.env.NODE_ENV ?? '',
   },
   db: {
     host: process.env.DB_HOST ?? 'localhost',
@@ -37,8 +33,8 @@ export default () => ({
     key: process.env.ENCRYPTION_KEY ?? '',
   },
   presidio: {
-    analyzerUrl: process.env.PRESIDIO_ANALYZER_URL ?? DEFAULT_PRESIDIO_ANALYZER_URL,
-    anonymizerUrl: process.env.PRESIDIO_ANONYMIZER_URL ?? DEFAULT_PRESIDIO_ANONYMIZER_URL,
+    analyzerUrl: process.env.PRESIDIO_ANALYZER_URL ?? '',
+    anonymizerUrl: process.env.PRESIDIO_ANONYMIZER_URL ?? '',
   },
   mail: {
     host: process.env.MAIL_HOST ?? '',
