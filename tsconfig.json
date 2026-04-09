@@ -3,13 +3,14 @@
     "module": "commonjs",
     "declaration": true,
     "removeComments": true,
-    "emitDecoratorMetadata": true,   // required by NestJS DI system
-    "experimentalDecorators": true,  // required by NestJS decorators (@Injectable, @Controller, etc.)
+    "emitDecoratorMetadata": true, // required by NestJS DI system
+    "experimentalDecorators": true, // required by NestJS decorators (@Injectable, @Controller, etc.)
     "allowSyntheticDefaultImports": true,
     "target": "ES2021",
     "sourceMap": true,
     "outDir": "./dist",
-    "baseUrl": "./",
+    "baseUrl": ".",
+    "rootDir": "./src",
     "incremental": true,
     "skipLibCheck": true,
     "strictNullChecks": true,
@@ -19,7 +20,7 @@
     "strictPropertyInitialization": false, // TypeORM entities use decorator-based init, not constructors
     "noFallthroughCasesInSwitch": true,
     "noImplicitReturns": true,
-    "noUnusedLocals": false,       // TODO: re-enable once stub services are implemented
+    "noUnusedLocals": false, // TODO: re-enable once stub services are implemented
     "paths": {
       "@/*": ["src/*"]
     }

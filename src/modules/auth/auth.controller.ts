@@ -8,6 +8,7 @@ import {
   ApiBadRequestResponse,
   ApiInternalServerErrorResponse,
 } from '@nestjs/swagger';
+import { LoginResponseDto } from './dto/login-response.dto';
 
 @ApiTags('Auth')
 @Controller('auth')
@@ -20,12 +21,7 @@ export class AuthController {
   @ApiResponse({
     status: 200,
     description: 'User logged in successfully',
-    schema: {
-      example: {
-        user: { id: 'uuid', email: 'user@gmail.com' },
-        accessToken: 'jwt_token',
-      },
-    },
+    type: LoginResponseDto,
   })
   @ApiBadRequestResponse({
     status: 400,
@@ -35,7 +31,7 @@ export class AuthController {
     status: 500,
     description: 'Internal server error',
   })
-  async login(@Body() dto: LoginDto) {
+  async login(@Body() dto: LoginDto): Promise<LoginResponseDto> {
     return this.authService.login(dto.email);
   }
 }
