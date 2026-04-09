@@ -20,15 +20,19 @@ export class AuthController {
   @ApiResponse({
     status: 200,
     description: 'User logged in successfully',
+    schema: {
+      example: {
+        user: { id: 'uuid', email: 'user@gmail.com' },
+        accessToken: 'jwt_token',
+      },
+    },
   })
   @ApiBadRequestResponse({
+    status: 400,
     description: 'Invalid email',
   })
-  @ApiResponse({
-    status: 401,
-    description: 'Unauthorized',
-  })
   @ApiInternalServerErrorResponse({
+    status: 500,
     description: 'Internal server error',
   })
   async login(@Body() dto: LoginDto) {
