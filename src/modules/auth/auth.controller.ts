@@ -1,7 +1,13 @@
-import { Body, Controller, Post } from '@nestjs/common';
+import { Body, Controller, Post, HttpCode, HttpStatus } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
-import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBadRequestResponse,
+  ApiInternalServerErrorResponse,
+} from '@nestjs/swagger';
 
 @ApiTags('Auth')
 @Controller('auth')
@@ -9,16 +15,23 @@ export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
   @Post('login')
-  @ApiOperation({ summary: 'Login using email' })
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Login or register user by email' })
   @ApiResponse({
     status: 200,
     description: 'User logged in successfully',
   })
-  @ApiResponse({
-    status: 400,
+  @ApiBadRequestResponse({
     description: 'Invalid email',
   })
-  login(@Body() dto: LoginDto) {
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized',
+  })
+  @ApiInternalServerErrorResponse({
+    description: 'Internal server error',
+  })
+  async login(@Body() dto: LoginDto) {
     return this.authService.login(dto.email);
   }
 }

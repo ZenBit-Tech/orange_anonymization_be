@@ -4,8 +4,8 @@ import { User } from './user.entity';
 import { UsersService } from './users.service';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([User])], // Підключаємо User entity до репозиторію
+  imports: [TypeOrmModule.forFeature([User])],
   providers: [UsersService],
-  exports: [UsersService], // Експортуємо сервіс, щоб інші модулі (наприклад AuthModule) могли його використовувати
+  exports: [UsersService],
 })
 export class UsersModule {}

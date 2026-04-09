@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { User } from './user.entity';
@@ -10,14 +10,21 @@ export class UsersService {
     private usersRepository: Repository<User>,
   ) {}
 
-  async findByEmail(email: string) {
-    return this.usersRepository.findOne({
-      where: { email },
-    });
-  }
+  async upsert(email: string): Promise<User> {
+    await this.usersRepository
+      .createQueryBuilder()
+      .insert()
+      .into(User)
+      .values({ email })
+      .orIgnore()
+      .execute();
 
-  async create(email: string) {
-    const user = this.usersRepository.create({ email });
-    return this.usersRepository.save(user);
+    const user = await this.usersRepository.findOneBy({ email });
+
+    if (!user) {
+      throw new InternalServerErrorException('User was not created or found');
+    }
+
+    return user;
   }
 }
