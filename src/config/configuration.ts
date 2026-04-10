@@ -3,8 +3,6 @@ const DEFAULT_APP_PORT = 3000;
 const DEFAULT_DB_PORT = 3306;
 const DEFAULT_MAIL_PORT = 587;
 const DEFAULT_CORS_ORIGIN = 'http://localhost:5173';
-const DEFAULT_PRESIDIO_ANALYZER_URL = 'http://localhost:5001';
-const DEFAULT_PRESIDIO_ANONYMIZER_URL = 'http://localhost:5002';
 const NODE_ENV_DEVELOPMENT = 'development';
 
 const toInt = (value: string | undefined, fallback: number): number => {
@@ -36,13 +34,14 @@ export default () => ({
   },
   auth: {
     jwtSecret: process.env.JWT_SECRET ?? '',
+    jwtExpiresIn: process.env.JWT_EXPIRES_IN ?? '1h',
   },
   encryption: {
     key: process.env.ENCRYPTION_KEY ?? '',
   },
   presidio: {
-    analyzerUrl: process.env.PRESIDIO_ANALYZER_URL ?? DEFAULT_PRESIDIO_ANALYZER_URL,
-    anonymizerUrl: process.env.PRESIDIO_ANONYMIZER_URL ?? DEFAULT_PRESIDIO_ANONYMIZER_URL,
+    analyzerUrl: process.env.PRESIDIO_ANALYZER_URL ?? '',
+    anonymizerUrl: process.env.PRESIDIO_ANONYMIZER_URL ?? '',
   },
   mail: {
     host: process.env.MAIL_HOST ?? '',

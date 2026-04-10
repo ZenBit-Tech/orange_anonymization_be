@@ -3,22 +3,19 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { MailerModule } from '@nestjs-modules/mailer';
 import configuration from './config/configuration';
+import { AuthModule } from './modules/auth/auth.module';
 const DB_RETRY_ATTEMPTS = 10;
 const DB_RETRY_DELAY = 3_000;
-import { AuthModule } from './modules/auth/auth.module';
 
 @Module({
   imports: [
-    //  Config
     ConfigModule.forRoot({
-      isGlobal: true, // Global re-injectable config
+      isGlobal: true,
       load: [configuration],
       envFilePath: '.env',
     }),
 
-    //  Database
     TypeOrmModule.forRootAsync({
-      // registerAsync reads configuration AFTER ConfigModule has loaded .env
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => ({
