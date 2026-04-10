@@ -1,7 +1,7 @@
 import { Body, Controller, InternalServerErrorException, Post } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { ContactFormDto } from './dto/contact-form.dto';
-import { EmailSenderService } from './services/email-sender.service';
+import { EmailSenderService } from '../email/services/email-sender.service';
 
 @ApiTags('Auth')
 @Controller('auth')

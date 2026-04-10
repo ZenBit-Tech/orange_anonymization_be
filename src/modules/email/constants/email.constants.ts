@@ -1,0 +1,6 @@
+export const EMAIL_CONSTANTS = {
+  MAGIC_LINK_SUBJECT: 'Sign in to De-ID Studio',
+  CONTACT_FORM_SUBJECT: 'New Contact Form Notification',
+  CONTACT_FORM_DEFAULT_COMPANY: 'N/A',
+  MAIL_FALLBACK_LOG_PREFIX: '[MAIL_FALLBACK]',
+};

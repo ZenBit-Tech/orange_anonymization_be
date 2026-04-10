@@ -21,6 +21,9 @@ export default () => ({
     corsOrigin: process.env.CORS_ORIGIN ?? DEFAULT_CORS_ORIGIN,
     nodeEnv: process.env.NODE_ENV ?? NODE_ENV_DEVELOPMENT,
     frontendUrl: process.env.FRONTEND_URL ?? '',
+    emailBrandName: process.env.EMAIL_BRAND_NAME ?? 'De-ID Studio',
+    emailBrandSubtitle: process.env.EMAIL_BRAND_SUBTITLE ?? 'De-ID and Synthesis',
+    magicLinkValidityText: process.env.MAGIC_LINK_VALIDITY_TEXT ?? '15 minutes',
   },
   db: {
     host: process.env.DB_HOST ?? 'localhost',
