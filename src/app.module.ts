@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import configuration from './config/configuration';
+import { AuthModule } from './modules/auth/auth.module';
 
 const DB_RETRY_ATTEMPTS = 10;
 const DB_RETRY_DELAY = 3_000;
@@ -31,6 +32,7 @@ const DB_RETRY_DELAY = 3_000;
         retryDelay: DB_RETRY_DELAY,
       }),
     }),
+    AuthModule,
   ],
 })
 export class AppModule {}
