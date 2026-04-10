@@ -242,6 +242,44 @@ docker compose logs -f mysql
 
 ---
 
+## SPA Serving
+
+The backend serves the built React frontend as a Single Page Application using `@nestjs/serve-static`.
+
+### How it works
+
+- Built frontend assets are served from `frontend-dist/` at the project root
+- All `/api/*` routes are excluded from static serving and handled by NestJS controllers
+- Any non-API route that doesn't match a static file falls back to `index.html` (SPA client-side routing)
+- Swagger (`/api/docs`) continues to work normally
+
+### Where to place the frontend build
+
+Place the production build output (typically the contents of the frontend's `dist/` folder) into `frontend-dist/`:
+
+```bash
+# Example: copy from a local frontend build
+cp -r ../frontend/dist/* frontend-dist/
+```
+
+### Local validation
+
+```bash
+# 1. Place a frontend build into frontend-dist/
+cp -r ../frontend/dist/* frontend-dist/
+
+# 2. Start the backend
+npm run start:dev
+
+# 3. Verify:
+#    - http://localhost:3000/         → SPA index.html
+#    - http://localhost:3000/some/route → SPA index.html (client-side routing)
+#    - http://localhost:3000/api/auth/login → API responds (POST)
+#    - http://localhost:3000/api/docs  → Swagger UI
+```
+
+---
+
 ## Scripts
 
 | Command | Description |
