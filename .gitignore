@@ -47,5 +47,9 @@ coverage/
 # Docker volumes (local data)
 mysql-data/
 
+# Frontend build artifacts (placed here by CI or manually)
+frontend-dist/*
+!frontend-dist/.gitkeep
+
 # NestJS
 /backend/dist/
