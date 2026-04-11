@@ -23,6 +23,11 @@
 # Required repository variables:
 #   HEROKU_APP_NAME — target Heroku app name
 #
+# Triggers:
+#   - push to dev branch (automatic on merge/push)
+#   - workflow_dispatch (manual run from Actions tab)
+#   - repository_dispatch type "frontend-updated" (sent by frontend repo CI)
+#
 # Note: A heroku.yml file exists in the repo root but is NOT the active
 # release path. This workflow is the single source of truth for deploys.
 #
@@ -35,6 +40,8 @@ on:
   push:
     branches: [dev]
   workflow_dispatch:
+  repository_dispatch:
+    types: [frontend-updated]
 
 env:
   NODE_VERSION: '20'
