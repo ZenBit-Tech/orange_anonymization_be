@@ -1,16 +1,15 @@
+const BRAND_NAME = 'De-ID Studio';
+const BRAND_SUBTITLE = 'De-ID and Synthesis';
+const MAGIC_LINK_VALIDITY = '15';
+
 interface MagicLinkTemplateInput {
   verifyUrl: string;
-  brandName: string;
-  brandSubtitle: string;
-  magicLinkValidity: string;
 }
 
-export function renderMagicLinkTemplate({
-  verifyUrl,
-  brandName,
-  brandSubtitle,
-  magicLinkValidity,
-}: MagicLinkTemplateInput): string {
+export function renderMagicLinkTemplate({ verifyUrl }: MagicLinkTemplateInput): string {
+  const brandName = BRAND_NAME;
+  const brandSubtitle = BRAND_SUBTITLE;
+  const magicLinkValidity = MAGIC_LINK_VALIDITY;
   const ctaText = `Sign In to ${brandName}`;
 
   return `
@@ -28,7 +27,7 @@ export function renderMagicLinkTemplate({
             <p style="margin:0 0 8px;font-size:18px;color:#6b7280;">Hi there,</p>
             <p style="margin:0 0 24px;font-size:18px;line-height:1.6;color:#6b7280;">
               Click the button below to sign in to your account.<br />
-              This link is valid for ${magicLinkValidity}.
+              This link is valid for ${magicLinkValidity} minutes.
             </p>
 
             <a

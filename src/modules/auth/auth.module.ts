@@ -4,7 +4,7 @@ import { AuthController } from './auth.controller';
 import { UsersModule } from '@/modules/users/users.module';
 import { JwtModule } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
-import { EmailModule } from '../email/email.module';
+import { EmailModule } from '@/modules/email/email.module';
 
 @Module({
   imports: [
