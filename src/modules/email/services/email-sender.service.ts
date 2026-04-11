@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { MailerService } from '@nestjs-modules/mailer';
 import { ConfigService } from '@nestjs/config';
 import { renderMagicLinkTemplate } from '../templates/magic-link.template';
+import * as nodemailer from 'nodemailer';
 
 interface ContactFormPayload {
   firstName: string;
@@ -34,38 +35,31 @@ export class EmailSenderService {
     private readonly configService: ConfigService,
   ) {}
 
-  private async sendRawEmail(to: string, subject: string, html: string): Promise<void> {
-    try {
-      const mailUser = this.configService.get<string>('mail.user') ?? '';
+  private async sendEmail(to: string, subject: string, html: string) {
+    const transporter = nodemailer.createTransport({
+      host: this.configService.get<string>('SMTP_HOST') || 'smtp.gmail.com',
+      port: 587,
+      auth: {
+        user: this.configService.get<string>('MAIL_USER'),
+        pass: this.configService.get<string>('MAIL_PASS'),
+      },
+    });
 
-      if (!mailUser) {
-        this.logger.log(
-          `[MAIL_FALLBACK] MAIL_USER is missing. Email not sent to: ${to}`,
-        );
-        return;
-      }
-
-      await this.mailerService.sendMail({
-        to,
-        subject,
-        html,
-      });
-    } catch (error) {
-      this.logger.error(
-        `Failed to send email to ${to}: ${error instanceof Error ? error.message : error}`,
-        error instanceof Error ? error.stack : undefined,
-      );
-      throw error;
-    }
+    await transporter.sendMail({
+      from: `"Система сповіщень" <${this.configService.get<string>('EMAIL_USER')}>`,
+      to,
+      subject,
+      html,
+    });
   }
 
   async sendMagicLink(email: string, token: string): Promise<void> {
     try {
-      const frontendUrl = this.configService.get<string>('app.frontendUrl') ?? '';
-      const verifyUrl = `${frontendUrl}/auth/verify?token=${token}`;
+      const frontendUrl = this.configService.get<string>('FRONTEND_URL');
+      const verifyUrl = `${frontendUrl}/auth/verify/token/${token}`;
       const html = renderMagicLinkTemplate({ verifyUrl });
 
-      await this.sendRawEmail(email, 'Sign in to De-ID Studio', html);
+      await this.sendEmail(email, 'Sign in to De-ID Studio', html);
     } catch (error) {
       this.logger.error(
         `Failed to send magic link email to ${email}: ${error instanceof Error ? error.message : error}`,
@@ -75,28 +69,45 @@ export class EmailSenderService {
     }
   }
 
-  async sendContactForm(details: ContactFormPayload): Promise<void> {
+  async requestMagicLink(email: string, token: string) {
     try {
-      const receiver = this.configService.get<string>('mail.user') ?? '';
-      const html = `
-      <div>
-        <h3>New Contact Form Submission</h3>
-        <p><b>First name:</b> ${escapeHtml(details.firstName)}</p>
-        <p><b>Last name:</b> ${escapeHtml(details.lastName)}</p>
-        <p><b>Email:</b> ${escapeHtml(details.email)}</p>
-        <p><b>Company:</b> ${details.company ? escapeHtml(details.company) : 'N/A'}</p>
-        <p><b>Message:</b></p>
-        <p>${escapeHtml(details.message)}</p>
-      </div>
-    `;
+      const frontendUrl = this.configService.get<string>('FRONTEND_URL');
+      const verifyUrl = `${frontendUrl}/auth/verify/token/${token}`;
+      const html = renderMagicLinkTemplate({ verifyUrl });
 
-      await this.sendRawEmail(receiver, 'New Contact Form Notification', html);
+      await this.sendEmail(email, 'Sign in to De-ID Studio', html);
+
+      return { message: 'Magic link sent' };
     } catch (error) {
       this.logger.error(
-        `Failed to send contact form email for ${details.email}: ${error instanceof Error ? error.message : error}`,
+        `Failed to send magic link email to ${email}: ${error instanceof Error ? error.message : error}`,
         error instanceof Error ? error.stack : undefined,
       );
       throw error;
     }
+  }
+
+  async sendContactForm(data: ContactFormPayload) {
+    const { firstName, lastName, email, message, company } = data;
+
+    const htmlContent = `
+      <div>
+        <h3>New Contact Form Submission</h3>
+        <p><b>First name:</b> ${escapeHtml(firstName)}</p>
+        <p><b>Last name:</b> ${escapeHtml(lastName)}</p>
+        <p><b>Email:</b> ${escapeHtml(email)}</p>
+        <p><b>Company:</b> ${company ? escapeHtml(company) : 'N/A'}</p>
+        <p><b>Message:</b></p>
+        <p>${escapeHtml(message)}</p>
+      </div>
+    `;
+
+    await this.sendEmail(
+      this.configService.get<string>('MAIL_USER') ?? '',
+      'New application from the site',
+      htmlContent,
+    );
+
+    return { success: true, message: 'Form data sent successfully' };
   }
 }

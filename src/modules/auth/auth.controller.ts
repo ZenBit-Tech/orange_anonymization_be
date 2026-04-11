@@ -9,16 +9,11 @@ import {
   ApiInternalServerErrorResponse,
 } from '@nestjs/swagger';
 import { LoginResponseDto } from './dto/login-response.dto';
-import { ContactFormDto } from './dto/contact-form.dto';
-import { EmailSenderService } from '../email/services/email-sender.service';
 
 @ApiTags('Auth')
 @Controller('auth')
 export class AuthController {
-  constructor(
-    private readonly authService: AuthService,
-    private readonly emailSenderService: EmailSenderService,
-  ) {}
+  constructor(private readonly authService: AuthService) {}
 
   @Post('login')
   @HttpCode(HttpStatus.OK)
@@ -36,14 +31,7 @@ export class AuthController {
     status: 500,
     description: 'Internal server error',
   })
-  async login(@Body() dto: LoginDto): Promise<LoginResponseDto> {
-    return this.authService.login(dto.email);
-  }
-
-  @Post('contact-form')
-  @ApiOperation({ summary: 'Send contact form notification to MAIL_USER' })
-  async sendContactForm(@Body() dto: ContactFormDto): Promise<{ success: boolean }> {
-    await this.emailSenderService.sendContactForm(dto);
-    return { success: true };
+  async login(@Body() dto: LoginDto): Promise<{ message: string }> {
+    return await this.authService.login(dto.email);
   }
 }
