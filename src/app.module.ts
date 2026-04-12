@@ -44,8 +44,8 @@ const FRONTEND_DIST_DIR = 'frontend-dist';
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => {
-        const mailUser = configService.get<string>('mail.user') ?? '';
-        const fromAddress = configService.get<string>('mail.from') ?? mailUser;
+        const mailUser = configService.get<string>('MAIL_USER') ?? '';
+        const fromAddress = configService.get<string>('MAIL_FROM') ?? mailUser;
 
         if (!fromAddress) {
           throw new Error('Mail config invalid: set MAIL_FROM or MAIL_USER');
@@ -54,11 +54,11 @@ const FRONTEND_DIST_DIR = 'frontend-dist';
         return {
           transport: {
             host: configService.get<string>('mail.host') ?? 'smtp.gmail.com',
-            port: configService.get<number>('mail.port') ?? 587,
+            port: configService.get<number>('MAIL_PORT') ?? 587,
             secure: false,
             auth: {
               user: mailUser,
-              pass: configService.get<string>('mail.pass') ?? '',
+              pass: configService.get<string>('MAIL_PASS') ?? '',
             },
           },
           defaults: {

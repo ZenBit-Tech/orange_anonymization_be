@@ -6,11 +6,21 @@ const toInt = (value: string | undefined, fallback: number): number => {
 
 const toBool = (value: string | undefined): boolean => value === 'true';
 
+const getCorsOrigin = (): string => {
+  const origin = process.env.CORS_ORIGIN ?? process.env.DEFAULT_CORS_ORIGIN;
+
+  if (!origin) {
+    throw new Error('Configuration Error: CORS_ORIGIN or DEFAULT_CORS_ORIGIN must be configured.');
+  }
+
+  return origin;
+};
+
 export default () => ({
   app: {
     host: process.env.HOST ?? '0.0.0.0',
     port: toInt(process.env.PORT, toInt(process.env.DEFAULT_APP_PORT, 3000)),
-    corsOrigin: process.env.CORS_ORIGIN ?? process.env.DEFAULT_CORS_ORIGIN ?? 'http://localhost:5173',
+    corsOrigin: getCorsOrigin(),
     nodeEnv: process.env.NODE_ENV ?? process.env.DEFAULT_NODE_ENV ?? 'development',
     frontendUrl: process.env.FRONTEND_URL ?? '',
   },
