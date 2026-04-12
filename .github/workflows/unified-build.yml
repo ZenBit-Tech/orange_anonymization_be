@@ -1,7 +1,8 @@
-# Unified Build Pipeline
+# Unified Build & Deploy Pipeline
 #
 # Builds a single deployable artifact containing both the NestJS API
-# and the pre-built React SPA.
+# and the pre-built React SPA, then releases it to Heroku via
+# Container Registry.
 #
 # How it works:
 #   1. Checks out this backend repo (pipeline base)
@@ -10,9 +11,20 @@
 #   3. Builds the frontend (Vite → dist/)
 #   4. Copies frontend/dist → frontend-dist/ in the backend workspace
 #   5. Builds the backend to verify integration
+#   6. Uploads frontend-dist/ as a GitHub Actions artifact
+#   7. Deploy job downloads the artifact, builds a Docker image,
+#      pushes it to Heroku Container Registry, and releases it
 #
 # Required secrets:
-#   GH_PAT — read-only GitHub PAT with `repo` scope for the frontend repo
+#   GH_PAT         — read-only GitHub PAT with `repo` scope for the frontend repo
+#   HEROKU_API_KEY — Heroku API key for Container Registry auth and releases
+#   HEROKU_EMAIL   — Heroku account email for Container Registry auth
+#
+# Required repository variables:
+#   HEROKU_APP_NAME — target Heroku app name
+#
+# Note: A heroku.yml file exists in the repo root but is NOT the active
+# release path. This workflow is the single source of truth for deploys.
 #
 # The frontend-dist/ directory is a CI artifact only — it is .gitignored
 # and never committed to this repository.
@@ -113,3 +125,53 @@ jobs:
           ls -la "${{ env.FRONTEND_DIST_DIR }}/"
           echo ""
           echo "Unified build completed successfully."
+
+      # ── 7. Upload frontend-dist for the deploy job ───────────────────
+      - name: Upload frontend-dist artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-dist
+          path: ${{ env.FRONTEND_DIST_DIR }}/
+          retention-days: 1
+
+  # ====================================================================
+  # Deploy — push unified Docker image to Heroku Container Registry
+  # ====================================================================
+  deploy:
+    name: Deploy to Heroku
+    needs: unified-build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout backend
+        uses: actions/checkout@v4
+
+      - name: Download frontend-dist artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: frontend-dist
+          path: ${{ env.FRONTEND_DIST_DIR }}
+
+      - name: Verify frontend-dist after download
+        run: |
+          if [ ! -f "${{ env.FRONTEND_DIST_DIR }}/index.html" ]; then
+            echo "::error::frontend-dist/index.html missing after artifact download"
+            exit 1
+          fi
+
+      - name: Install Heroku CLI
+        run: curl https://cli-assets.heroku.com/install.sh | sh
+
+      - name: Log in to Heroku Container Registry
+        run: echo "${{ secrets.HEROKU_API_KEY }}" | docker login --username="${{ secrets.HEROKU_EMAIL }}" --password-stdin registry.heroku.com
+
+      - name: Build Docker image
+        run: docker build -t registry.heroku.com/${{ vars.HEROKU_APP_NAME }}/web .
+
+      - name: Push Docker image to Heroku
+        run: docker push registry.heroku.com/${{ vars.HEROKU_APP_NAME }}/web
+
+      - name: Release image on Heroku
+        env:
+          HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
+        run: heroku container:release web --app "${{ vars.HEROKU_APP_NAME }}"

@@ -295,6 +295,77 @@ npm run start:dev
 | `npm run migration:generate` | Generate migration from entity changes |
 | `npm run db:seed` | Seed admin user |
 
+---
 
+## Deployment
 
+The application is deployed to Heroku via **GitHub Actions + Heroku Container Registry**. The workflow in `.github/workflows/unified-build.yml` is the single source of truth for releases.
 
+> A `heroku.yml` file exists in the repo root but is **not** the active release path. It is retained for reference; all production deploys go through the GitHub Actions workflow.
+
+### Release flow
+
+1. A push (or merge) to `dev` triggers the **Unified Build** workflow
+2. The **build job** checks out both repos, builds the frontend, injects it into `frontend-dist/`, builds the backend, and uploads `frontend-dist/` as an artifact
+3. The **deploy job** downloads the artifact, builds a Docker image using the project `Dockerfile`, pushes it to Heroku Container Registry, and releases it
+4. Manual deploys are also available via `workflow_dispatch` in the Actions tab
+
+### Required secrets and variables
+
+Configure these in the backend repository's GitHub Settings:
+
+**Secrets:**
+
+| Name | Description |
+|------|-------------|
+| `GH_PAT` | Read-only GitHub PAT with `repo` scope for the frontend repo |
+| `HEROKU_API_KEY` | Heroku API key for Container Registry auth and releases |
+| `HEROKU_EMAIL` | Heroku account email for Container Registry auth |
+
+**Repository variables:**
+
+| Name | Example | Description |
+|------|---------|-------------|
+| `HEROKU_APP_NAME` | `orange-anonymization-be` | Target Heroku app name |
+
+> The frontend repository and branch are pinned in the workflow file itself via the `FRONTEND_REPO` and `FRONTEND_BRANCH` env vars. Update those values in `.github/workflows/unified-build.yml` if the frontend source changes.
+
+### One-time setup
+
+Before the first deploy, ensure the target Heroku app uses the container stack:
+
+```bash
+heroku stack:set container -a <HEROKU_APP_NAME>
+```
+
+If Heroku GitHub integration is connected for this app, disconnect it to avoid conflicting deploy paths (Heroku Dashboard → app → Deploy tab → Disconnect GitHub).
+
+### Post-deploy smoke test checklist
+
+After each release, verify:
+
+- [ ] `/` — SPA loads (index.html served)
+- [ ] `/some/nested/route` + browser refresh — SPA client-side routing works
+- [ ] `/api/health` — returns `{ "status": "ok" }`
+- [ ] `/api/docs` — Swagger UI loads (non-production only)
+- [ ] 1–2 authenticated API endpoints respond correctly
+
+### Rollback
+
+If a release is broken:
+
+```bash
+# List recent releases
+heroku releases -a <HEROKU_APP_NAME>
+
+# Roll back to the previous release
+heroku rollback -a <HEROKU_APP_NAME>
+```
+
+If the container fails to start, check logs:
+
+```bash
+heroku logs --tail -a <HEROKU_APP_NAME>
+```
+
+If SPA routing breaks (non-API routes return 404), verify that `frontend-dist/index.html` exists inside the running container and that `ServeStaticModule` excludes `/api/*`.
