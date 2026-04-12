@@ -12,7 +12,7 @@ export class EmailController {
   @ApiOperation({ summary: 'Send contact form' })
   @ApiResponse({ status: 201, description: 'Email sent successfully.' })
   @ApiResponse({ status: 400, description: 'Invalid input.' })
-  async sendContactForm(@Body() contactFormDto: ContactFormDto) {
+  async sendContactForm(@Body() contactFormDto: ContactFormDto): Promise<{ message: string }> {
     await this.emailService.sendContactForm(contactFormDto);
 
     return { message: 'Your message is received' };
