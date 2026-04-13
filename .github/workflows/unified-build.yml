@@ -45,8 +45,8 @@ on:
 
 env:
   NODE_VERSION: '20'
-  FRONTEND_REPO: ${{ vars.FRONTEND_REPO || 'ZenBit-Tech/orange_anonymization_fe' }}
-  FRONTEND_BRANCH: ${{ vars.FRONTEND_BRANCH || 'develop' }}
+  FRONTEND_REPO: ZenBit-Tech/orange_anonymization_fe
+  FRONTEND_BRANCH: develop
   FRONTEND_DIST_DIR: frontend-dist
 
 jobs:
