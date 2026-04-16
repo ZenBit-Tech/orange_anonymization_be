@@ -6,6 +6,8 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { MailerModule } from '@nestjs-modules/mailer';
 import configuration from './config/configuration';
 import { AuthModule } from './modules/auth/auth.module';
+import { JobsModule } from './modules/jobs/jobs.module';
+import { DashboardModule } from './modules/dashboard/dashboard.module';
 const DB_RETRY_ATTEMPTS = 10;
 const DB_RETRY_DELAY = 3_000;
 const FRONTEND_DIST_DIR = 'frontend-dist';
@@ -68,6 +70,8 @@ const FRONTEND_DIST_DIR = 'frontend-dist';
       },
     }),
     AuthModule,
+    JobsModule,
+    DashboardModule,
   ],
 })
 export class AppModule {}
