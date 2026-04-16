@@ -1,7 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { MailerService } from '@nestjs-modules/mailer';
 import { ConfigService } from '@nestjs/config';
-import { renderMagicLinkTemplate } from '../templates/magic-link.template';
+import { renderMagicLinkTemplate } from '@/modules/email/templates/magic-link.template';
 import * as nodemailer from 'nodemailer';
 
 interface ContactFormPayload {
@@ -29,65 +28,45 @@ function escapeHtml(str: string): string {
 @Injectable()
 export class EmailSenderService {
   private readonly logger = new Logger(EmailSenderService.name);
+  private readonly transporter;
 
-  constructor(
-    private readonly mailerService: MailerService,
-    private readonly configService: ConfigService,
-  ) {}
-
-  private async sendEmail(to: string, subject: string, html: string) {
-    const transporter = nodemailer.createTransport({
-      host: this.configService.get<string>('SMTP_HOST') || 'smtp.gmail.com',
+  constructor(private readonly configService: ConfigService) {
+    this.transporter = nodemailer.createTransport({
+      host: this.configService.get<string>('SMTP_HOST') ?? 'smtp.gmail.com',
       port: 587,
       auth: {
         user: this.configService.get<string>('MAIL_USER'),
         pass: this.configService.get<string>('MAIL_PASS'),
       },
     });
+  }
 
-    await transporter.sendMail({
-      from: `"Система сповіщень" <${this.configService.get<string>('EMAIL_USER')}>`,
+  private async sendEmail(to: string, subject: string, html: string): Promise<void> {
+    await this.transporter.sendMail({
+      from: `"Notification System" <${this.configService.get<string>('MAIL_USER')}>`,
       to,
       subject,
       html,
     });
   }
 
-  async sendMagicLink(email: string, token: string): Promise<void> {
+  async requestMagicLink(email: string, token: string): Promise<{ message: string }> {
     try {
-      const frontendUrl = this.configService.get<string>('FRONTEND_URL');
-      const verifyUrl = `${frontendUrl}/auth/verify/token/${token}`;
+      const frontendUrl = this.configService.get<string>('FRONTEND_URL') ?? '';
+      const verifyUrl = new URL(`/auth/verify/token/${token}`, frontendUrl).toString();
       const html = renderMagicLinkTemplate({ verifyUrl });
-
       await this.sendEmail(email, 'Sign in to De-ID Studio', html);
-    } catch (error) {
-      this.logger.error(
-        `Failed to send magic link email to ${email}: ${error instanceof Error ? error.message : error}`,
-        error instanceof Error ? error.stack : undefined,
-      );
-      throw error;
-    }
-  }
-
-  async requestMagicLink(email: string, token: string) {
-    try {
-      const frontendUrl = this.configService.get<string>('FRONTEND_URL');
-      const verifyUrl = `${frontendUrl}/auth/verify/token/${token}`;
-      const html = renderMagicLinkTemplate({ verifyUrl });
-
-      await this.sendEmail(email, 'Sign in to De-ID Studio', html);
-
       return { message: 'Magic link sent' };
     } catch (error) {
       this.logger.error(
-        `Failed to send magic link email to ${email}: ${error instanceof Error ? error.message : error}`,
+        `Failed to send magic link email to ${email}`,
         error instanceof Error ? error.stack : undefined,
       );
       throw error;
     }
   }
 
-  async sendContactForm(data: ContactFormPayload) {
+  async sendContactForm(data: ContactFormPayload): Promise<{ success: boolean; message: string }> {
     const { firstName, lastName, email, message, company } = data;
 
     const htmlContent = `
@@ -108,6 +87,9 @@ export class EmailSenderService {
       htmlContent,
     );
 
-    return { success: true, message: 'Form data sent successfully' };
+    return {
+      success: true,
+      message: 'Form data sent successfully',
+    };
   }
 }
