@@ -1,7 +1,7 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { UsersService } from '@/modules/users/users.service';
-import { EmailSenderService } from '../email/services/email-sender.service';
+import { EmailSenderService } from '@/modules/email/services/email-sender.service';
 import { LoginMessageDto } from './dto/login-message.dto';
 import { VerifyResponseDto } from './dto/verify-response.dto';
 

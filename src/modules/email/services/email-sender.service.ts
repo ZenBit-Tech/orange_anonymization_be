@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { renderMagicLinkTemplate } from '../templates/magic-link.template';
+import { renderMagicLinkTemplate } from '@/modules/email/templates/magic-link.template';
 import * as nodemailer from 'nodemailer';
 
 interface ContactFormPayload {
