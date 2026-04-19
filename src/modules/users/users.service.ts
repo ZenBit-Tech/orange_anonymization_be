@@ -1,7 +1,9 @@
-import { Injectable, InternalServerErrorException } from '@nestjs/common';
+import { Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
 import { Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { User } from './user.entity';
+import { UserResponse } from './interfaces/user-response.interface';
+import { UserMapper } from './mappers/user.mapper';
 
 @Injectable()
 export class UsersService {
@@ -32,5 +34,15 @@ export class UsersService {
     return this.usersRepository.findOne({
       where: { id },
     });
+  }
+
+  async getCurrentUser(userId: string): Promise<UserResponse> {
+    const user = await this.findById(userId);
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    return UserMapper.toResponse(user);
   }
 }

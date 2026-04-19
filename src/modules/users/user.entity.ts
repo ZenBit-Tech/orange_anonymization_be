@@ -1,4 +1,4 @@
-import { Entity, Column, PrimaryGeneratedColumn, Index } from 'typeorm';
+import { Entity, Column, PrimaryGeneratedColumn, Index, CreateDateColumn } from 'typeorm';
 
 @Entity({ name: 'users' })
 @Index(['email'], { unique: true })
@@ -8,4 +8,7 @@ export class User {
 
   @Column()
   email: string;
+
+  @CreateDateColumn()
+  createdAt: Date;
 }
