@@ -19,36 +19,22 @@ export enum JobStatus {
   FAILED = 'failed',
 }
 
-export class JobInputDataDto {
-  @ApiPropertyOptional()
+export interface JobInputData {
   fileName?: string;
-
-  @ApiPropertyOptional()
   fileSize?: number;
-
-  @ApiPropertyOptional()
   lineCount?: number;
 }
 
 export class WizardStateDto {
-  @ApiProperty()
   currentStep: number;
-
-  @ApiProperty({ nullable: true })
   frameworkSelection: string | null;
-
-  @ApiProperty({ type: JobInputDataDto, nullable: true })
-  inputData: JobInputDataDto | null;
-
-  @ApiProperty()
+  inputData: JobInputData | null;
   configSettings: {
     language?: string;
     method?: string;
     entities?: string[];
     [key: string]: unknown;
   };
-
-  @ApiProperty()
   analysisMetadata?: Record<string, unknown>;
 }
 

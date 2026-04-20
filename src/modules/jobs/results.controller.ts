@@ -5,6 +5,7 @@ import PDFDocument from 'pdfkit';
 import { JwtAuthGuard } from '../auth/guards/auth.guard';
 import { ApiBearerAuth, ApiOperation, ApiProduces, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { Job } from './entities/job.entity';
+import { Result } from './interfaces/result.interface';
 
 interface RequestWithUser extends Request {
   user: {
@@ -22,7 +23,7 @@ export class ResultsController {
   @Get(':id')
   @ApiOperation({ summary: 'Get detailed anonymization results' })
   @ApiResponse({ status: 200, type: Job })
-  async getResults(@Param('id') id: string, @Req() req: RequestWithUser) {
+  async getResults(@Param('id') id: string, @Req() req: RequestWithUser): Promise<Result> {
     return this.jobsService.getJobResults(id, req.user.sub);
   }
 
