@@ -1,22 +1,22 @@
 import { Injectable, ServiceUnavailableException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import axios from 'axios';
-
-interface PresidioOperator {
-  type: string;
-  new_value?: string;
-  masking_char?: string;
-  chars_to_mask?: number;
-  from_end?: boolean;
-}
-
-type PresidioOperators = Record<string, PresidioOperator>;
+import {
+  AnalysisResult,
+  AnonymizeResponse,
+  PresidioOperators,
+} from './interfaces/presidio.interface';
 
 @Injectable()
 export class PresidioService {
   constructor(private readonly configService: ConfigService) {}
 
-  async analyzeText(text: string, language: string, entities: string[], threshold: number = 0.5) {
+  async analyzeText(
+    text: string,
+    language: string,
+    entities: string[],
+    threshold: number = 0.5,
+  ): Promise<AnalysisResult[]> {
     try {
       const response = await axios.post(
         `${this.configService.get<string>('ANALYZER_URL')}/analyze`,
@@ -33,7 +33,11 @@ export class PresidioService {
     }
   }
 
-  async anonymizeText(text: string, analyzeResults: unknown[], strategies: Record<string, string>) {
+  async anonymizeText(
+    text: string,
+    analyzeResults: AnalysisResult[],
+    strategies: Record<string, string>,
+  ): Promise<string> {
     const operators: PresidioOperators = {};
 
     for (const [entity, strategy] of Object.entries(strategies)) {
@@ -47,7 +51,7 @@ export class PresidioService {
     }
 
     try {
-      const response = await axios.post(
+      const response = await axios.post<AnonymizeResponse>(
         `${this.configService.get<string>('ANONYMIZER_URL')}/anonymize`,
         {
           text,

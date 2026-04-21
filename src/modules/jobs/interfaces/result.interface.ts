@@ -1,6 +1,8 @@
+import { AnalysisMetadata } from '../entities/job.entity';
+
 export interface Result {
   mainContent: MainContent;
-  entityTable: Record<string, unknown> | never[];
+  entityTable: AnalysisMetadata[];
   auditTrail: AuditTrail;
 }
 

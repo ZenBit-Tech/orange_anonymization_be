@@ -4,6 +4,9 @@ import { DeepPartial, Repository } from 'typeorm';
 import { Job, JobStatus } from './entities/job.entity';
 import { OnEvent } from '@nestjs/event-emitter';
 import { PresidioService } from './presidio.service';
+import { Result } from './interfaces/result.interface';
+import { AnalysisResult } from './interfaces/presidio.interface';
+import { ChartData, DashboardData } from '../dashboard/interfaces/dashboard-data.interface';
 
 @Injectable()
 export class JobsService {
@@ -49,15 +52,15 @@ export class JobsService {
     });
   }
 
-  async update(id: string, updateDto: Partial<Job>, userId: string): Promise<Job> {
+  async update(id: string, updateJobData: Partial<Job>, userId: string): Promise<Job> {
     const job = await this.jobRepository.findOne({ where: { id, userId } });
     if (!job) throw new NotFoundException(`Job not found or access denied`);
 
-    Object.assign(job, updateDto);
+    Object.assign(job, updateJobData);
     return this.jobRepository.save(job);
   }
 
-  async processJob(jobId: string, userId: string) {
+  async processJob(jobId: string, userId: string): Promise<void> {
     const job = await this.jobRepository.findOne({
       where: { id: jobId, userId },
     });
@@ -109,7 +112,7 @@ export class JobsService {
             ]
           : configSettings.entities || [];
 
-      const analysisResults = await this.presidioService.analyzeText(
+      const analysisResults: AnalysisResult[] = await this.presidioService.analyzeText(
         job.originalText,
         language,
         entitiesToAnalyze,
@@ -126,7 +129,7 @@ export class JobsService {
         }
       });
 
-      const anonymizedText = await this.presidioService.anonymizeText(
+      const anonymizedText: string = await this.presidioService.anonymizeText(
         job.originalText,
         analysisResults,
         strategies,
@@ -147,7 +150,7 @@ export class JobsService {
     }
   }
 
-  async getStats(userId: string) {
+  async getStats(userId: string): Promise<DashboardData> {
     const totalDocuments = await this.jobRepository.count({
       where: { userId, status: JobStatus.SUCCEEDED },
     });
@@ -170,7 +173,7 @@ export class JobsService {
       .andWhere('job.createdAt >= :thirtyDaysAgo', { thirtyDaysAgo })
       .groupBy('date')
       .orderBy('date', 'ASC')
-      .getRawMany();
+      .getRawMany<ChartData>();
 
     return {
       metrics: {
@@ -184,7 +187,7 @@ export class JobsService {
     };
   }
 
-  async getJobResults(id: string, userId: string) {
+  async getJobResults(id: string, userId: string): Promise<Result> {
     const job = await this.jobRepository.findOne({ where: { id, userId } });
 
     if (!job) throw new NotFoundException('Results not found');
@@ -210,7 +213,7 @@ export class JobsService {
     };
   }
 
-  async validateInput(text: string) {
+  async validateInput(text: string): Promise<void> {
     const trimmed = text.trim();
     if (trimmed.length < 50) {
       throw new BadRequestException('Text must be at least 50 characters');

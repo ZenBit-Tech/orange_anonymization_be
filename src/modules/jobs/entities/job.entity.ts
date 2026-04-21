@@ -10,6 +10,14 @@ import {
 } from 'typeorm';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
+export interface AnalysisMetadata {
+  start: number;
+  end: number;
+  score: number;
+  entity_type: string;
+  recognition_metadata?: Record<string, unknown>;
+}
+
 export enum JobStatus {
   DRAFT = 'draft',
   CONFIGURED = 'configured',
@@ -35,7 +43,7 @@ export class WizardStateDto {
     entities?: string[];
     [key: string]: unknown;
   };
-  analysisMetadata?: Record<string, unknown>;
+  analysisMetadata?: AnalysisMetadata[];
 }
 
 @Entity('jobs')

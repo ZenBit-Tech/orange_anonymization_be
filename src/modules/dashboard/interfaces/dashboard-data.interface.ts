@@ -15,7 +15,7 @@ interface Metrics {
   syntheticRecords: number;
 }
 
-interface ChartData {
+export interface ChartData {
   date: string;
   count: number | string;
 }
