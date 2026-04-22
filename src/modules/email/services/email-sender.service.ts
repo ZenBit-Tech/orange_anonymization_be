@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { renderMagicLinkTemplate } from '@/modules/email/templates/magic-link.template';
+import { renderContactReceiptTemplate } from '@/modules/email/templates/contact-receipt.template';
 import * as nodemailer from 'nodemailer';
 
 interface ContactFormPayload {
@@ -86,6 +87,9 @@ export class EmailSenderService {
       'New application from the site',
       htmlContent,
     );
+
+    const contactReceiptHtml = renderContactReceiptTemplate({ firstName, message });
+    await this.sendEmail(email, 'We received your message - De-ID Studio', contactReceiptHtml);
 
     return {
       success: true,
