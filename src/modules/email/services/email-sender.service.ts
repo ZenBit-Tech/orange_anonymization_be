@@ -39,9 +39,7 @@ export class EmailSenderService {
       const mailUser = this.configService.get<string>('mail.user') ?? '';
 
       if (!mailUser) {
-        this.logger.log(
-          `[MAIL_FALLBACK] MAIL_USER is missing. Email not sent to: ${to}`,
-        );
+        this.logger.log(`[MAIL_FALLBACK] MAIL_USER is missing. Email not sent to: ${to}`);
         return;
       }
 
@@ -57,6 +55,11 @@ export class EmailSenderService {
       );
       throw error;
     }
+  }
+
+  async requestMagicLink(email: string, token: string): Promise<{ message: string }> {
+    await this.sendMagicLink(email, token);
+    return { message: 'Magic link sent' };
   }
 
   async sendMagicLink(email: string, token: string): Promise<void> {

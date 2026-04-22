@@ -1,4 +1,4 @@
-import { Body, Controller, Post, HttpCode, HttpStatus } from '@nestjs/common';
+import { Body, Controller, Post, HttpCode, HttpStatus, Get, Query } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
 import {
@@ -7,9 +7,11 @@ import {
   ApiResponse,
   ApiBadRequestResponse,
   ApiInternalServerErrorResponse,
+  ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
-import { LoginResponseDto } from './dto/login-response.dto';
-import { ContactFormDto } from './dto/contact-form.dto';
+import { LoginMessageDto } from './dto/login-message.dto';
+import { VerifyResponseDto, VerifyTokenDto } from './dto/verify-response.dto';
+import { ContactFormDto } from '../email/dto/contact-form.dto';
 import { EmailSenderService } from '../email/services/email-sender.service';
 
 @ApiTags('Auth')
@@ -25,8 +27,8 @@ export class AuthController {
   @ApiOperation({ summary: 'Login or register user by email' })
   @ApiResponse({
     status: 200,
-    description: 'User logged in successfully',
-    type: LoginResponseDto,
+    description: 'Magic link sent to email',
+    type: LoginMessageDto,
   })
   @ApiBadRequestResponse({
     status: 400,
@@ -36,7 +38,7 @@ export class AuthController {
     status: 500,
     description: 'Internal server error',
   })
-  async login(@Body() dto: LoginDto): Promise<LoginResponseDto> {
+  async login(@Body() dto: LoginDto): Promise<LoginMessageDto> {
     return this.authService.login(dto.email);
   }
 
@@ -45,5 +47,24 @@ export class AuthController {
   async sendContactForm(@Body() dto: ContactFormDto): Promise<{ success: boolean }> {
     await this.emailSenderService.sendContactForm(dto);
     return { success: true };
+  }
+
+  @Get('verify')
+  @ApiOperation({ summary: 'Verify magic link token and return JWT session token' })
+  @ApiResponse({
+    status: 200,
+    description: 'Token verified successfully',
+    type: VerifyResponseDto,
+  })
+  @ApiUnauthorizedResponse({
+    status: 401,
+    description: 'Invalid or expired token',
+  })
+  @ApiInternalServerErrorResponse({
+    status: 500,
+    description: 'Internal server error',
+  })
+  verify(@Query() query: VerifyTokenDto): Promise<VerifyResponseDto> {
+    return this.authService.verify(query.token);
   }
 }
