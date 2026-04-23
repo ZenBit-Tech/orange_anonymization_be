@@ -1,6 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { renderMagicLinkTemplate } from '@/modules/email/templates/magic-link.template';
+import { renderContactReceiptTemplate } from '@/modules/email/templates/contact-receipt.template';
+import { renderContactAdminNotificationTemplate } from '@/modules/email/templates/contact-admin-notification.template';
 import * as nodemailer from 'nodemailer';
 
 interface ContactFormPayload {
@@ -11,43 +13,66 @@ interface ContactFormPayload {
   company?: string;
 }
 
-function escapeHtml(str: string): string {
-  return str.replace(
-    /[&<>"']/g,
-    (c) =>
-      ({
-        '&': '&amp;',
-        '<': '&lt;',
-        '>': '&gt;',
-        '"': '&quot;',
-        "'": '&#39;',
-      })[c] ?? c,
-  );
-}
-
 @Injectable()
 export class EmailSenderService {
   private readonly logger = new Logger(EmailSenderService.name);
   private readonly transporter;
+  private readonly fromAddress: string;
+  private readonly contactRecipientEmail: string;
 
   constructor(private readonly configService: ConfigService) {
+    const smtpHost =
+      this.configService.get<string>('mail.host') ||
+      this.configService.get<string>('SMTP_HOST') ||
+      this.configService.get<string>('MAIL_HOST') ||
+      'smtp.gmail.com';
+    const smtpPort =
+      this.configService.get<number>('mail.port') ??
+      this.configService.get<number>('MAIL_PORT') ??
+      587;
+    const smtpUser =
+      this.configService.get<string>('mail.user') ||
+      this.configService.get<string>('MAIL_USER') ||
+      '';
+    const smtpPass =
+      this.configService.get<string>('mail.pass') ||
+      this.configService.get<string>('MAIL_PASS') ||
+      '';
+    const configuredFrom =
+      this.configService.get<string>('mail.from') ||
+      this.configService.get<string>('MAIL_FROM') ||
+      smtpUser;
+
+    this.fromAddress = configuredFrom;
+    this.contactRecipientEmail = configuredFrom || smtpUser;
+
     this.transporter = nodemailer.createTransport({
-      host: this.configService.get<string>('SMTP_HOST') ?? 'smtp.gmail.com',
-      port: 587,
+      host: smtpHost,
+      port: smtpPort,
+      secure: false,
       auth: {
-        user: this.configService.get<string>('MAIL_USER'),
-        pass: this.configService.get<string>('MAIL_PASS'),
+        user: smtpUser,
+        pass: smtpPass,
       },
     });
   }
 
   private async sendEmail(to: string, subject: string, html: string): Promise<void> {
-    await this.transporter.sendMail({
-      from: `"Notification System" <${this.configService.get<string>('MAIL_USER')}>`,
+    const info = await this.transporter.sendMail({
+      from: `"De-ID Studio" <${this.fromAddress}>`,
       to,
       subject,
       html,
     });
+
+    if (info.rejected.length > 0) {
+      this.logger.error(
+        `Email rejected for recipient ${to}. Subject: ${subject}. Rejected: ${info.rejected.join(', ')}`,
+      );
+      throw new Error(`Email delivery rejected for ${to}`);
+    }
+
+    this.logger.log(`Email sent: subject="${subject}" to="${to}" messageId="${info.messageId}"`);
   }
 
   private getMagicLinkExpiryMinutes(): number {
@@ -57,7 +82,10 @@ export class EmailSenderService {
 
   async requestMagicLink(email: string, token: string): Promise<{ message: string }> {
     try {
-      const frontendUrl = this.configService.get<string>('FRONTEND_URL') ?? '';
+      const frontendUrl =
+        this.configService.get<string>('app.frontendUrl') ??
+        this.configService.get<string>('FRONTEND_URL') ??
+        '';
       const verifyUrl = new URL(`/auth/verify/token/${token}`, frontendUrl).toString();
       const expiresInMinutes = this.getMagicLinkExpiryMinutes();
       const html = renderMagicLinkTemplate({
@@ -79,23 +107,27 @@ export class EmailSenderService {
     try {
       const { firstName, lastName, email, message, company } = data;
 
-      const htmlContent = `
-      <div>
-        <h3>New Contact Form Submission</h3>
-        <p><b>First name:</b> ${escapeHtml(firstName)}</p>
-        <p><b>Last name:</b> ${escapeHtml(lastName)}</p>
-        <p><b>Email:</b> ${escapeHtml(email)}</p>
-        <p><b>Company:</b> ${company ? escapeHtml(company) : 'N/A'}</p>
-        <p><b>Message:</b></p>
-        <p>${escapeHtml(message)}</p>
-      </div>
-    `;
+    try {
+      const adminNotificationHtml = renderContactAdminNotificationTemplate({
+        firstName,
+        lastName,
+        email,
+        message,
+        company,
+      });
 
       await this.sendEmail(
-        this.configService.get<string>('MAIL_USER') ?? '',
-        'New application from the site',
-        htmlContent,
+        this.contactRecipientEmail,
+        'New Contact Form Submission - De-ID Studio',
+        adminNotificationHtml,
       );
+
+      const contactReceiptHtml = renderContactReceiptTemplate({
+        firstName,
+        message,
+      });
+
+      await this.sendEmail(email, 'We received your message - De-ID Studio', contactReceiptHtml);
 
       return {
         success: true,
@@ -103,10 +135,14 @@ export class EmailSenderService {
       };
     } catch (error) {
       this.logger.error(
-        'Failed to send contact form',
+        `Failed to send contact form emails for ${email}`,
         error instanceof Error ? error.stack : undefined,
       );
-      throw error;
+
+      return {
+        success: false,
+        message: 'Failed to send form data',
+      };
     }
   }
 }
