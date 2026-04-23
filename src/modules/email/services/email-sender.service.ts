@@ -107,7 +107,6 @@ export class EmailSenderService {
     try {
       const { firstName, lastName, email, message, company } = data;
 
-    try {
       const adminNotificationHtml = renderContactAdminNotificationTemplate({
         firstName,
         lastName,
@@ -135,7 +134,7 @@ export class EmailSenderService {
       };
     } catch (error) {
       this.logger.error(
-        `Failed to send contact form emails for ${email}`,
+        `Failed to send contact form emails for ${data.email}`,
         error instanceof Error ? error.stack : undefined,
       );
 
