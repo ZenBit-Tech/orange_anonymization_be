@@ -14,6 +14,7 @@ import {
   ParseFilePipe,
   MaxFileSizeValidator,
   BadRequestException,
+  ForbiddenException,
 } from '@nestjs/common';
 import { JobsService } from './jobs.service';
 import { Job, JobStatus } from './entities/job.entity';
@@ -169,7 +170,7 @@ export class JobsController {
     const job = await this.jobsService.findOne(id);
 
     if (job.userId !== userId) {
-      throw new Error('You do not have access to this job');
+      throw new ForbiddenException('You do not have access to this job');
     }
     return job;
   }
