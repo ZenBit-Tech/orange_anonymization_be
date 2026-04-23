@@ -94,29 +94,47 @@ export class EmailSenderService {
     }
   }
 
-  async sendContactForm(data: ContactFormPayload): Promise<{ success: boolean; message: string }> {
-    const { firstName, lastName, email, message, company } = data;
+  async sendContactForm(
+  data: ContactFormPayload,
+): Promise<{ success: boolean; message: string }> {
+  try {
+    const { firstName, lastName, email, message, company } = data;
 
-    const adminNotificationHtml = renderContactAdminNotificationTemplate({
-      firstName,
-      lastName,
-      email,
-      message,
-      company,
-    });
+    const adminNotificationHtml = renderContactAdminNotificationTemplate({
+      firstName,
+      lastName,
+      email,
+      message,
+      company,
+    });
 
-    await this.sendEmail(
-      this.contactRecipientEmail,
-      'New Contact Form Submission - De-ID Studio',
-      adminNotificationHtml,
-    );
+    await this.sendEmail(
+      this.contactRecipientEmail,
+      'New Contact Form Submission - De-ID Studio',
+      adminNotificationHtml,
+    );
 
-    const contactReceiptHtml = renderContactReceiptTemplate({ firstName, message });
-    await this.sendEmail(email, 'We received your message - De-ID Studio', contactReceiptHtml);
+    const contactReceiptHtml = renderContactReceiptTemplate({
+      firstName,
+      message,
+    });
 
-    return {
-      success: true,
-      message: 'Form data sent successfully',
-    };
-  }
+    await this.sendEmail(
+      email,
+      'We received your message - De-ID Studio',
+      contactReceiptHtml,
+    );
+
+    return {
+      success: true,
+      message: 'Form data sent successfully',
+    };
+  } catch (error) {
+    this.logger.error(
+      'Failed to send contact form',
+      error instanceof Error ? error.stack : undefined,
+    );
+
+    throw error;
+  }
 }
