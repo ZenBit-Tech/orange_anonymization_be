@@ -1,0 +1,32 @@
+import { Module } from '@nestjs/common';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { JwtModule } from '@nestjs/jwt';
+import { JobsService } from './jobs.service';
+import { JobsController } from './jobs.controller';
+import { ResultsController } from './results.controller';
+import { PresidioService } from './presidio.service';
+import { Job } from './entities/job.entity';
+import { User } from '../users/user.entity';
+import { DashboardController } from '../dashboard/dashboard.controller';
+import { ConfigService } from '@nestjs/config';
+import { EventEmitterModule } from '@nestjs/event-emitter';
+
+@Module({
+  imports: [
+    TypeOrmModule.forFeature([Job, User]),
+    EventEmitterModule.forRoot(),
+    JwtModule.registerAsync({
+      inject: [ConfigService],
+      useFactory: (configService: ConfigService) => ({
+        secret: configService.get<string>('auth.jwtSecret'),
+        signOptions: {
+          expiresIn: configService.get<string>('auth.jwtExpiresIn'),
+        },
+      }),
+    }),
+  ],
+  controllers: [JobsController, ResultsController, DashboardController],
+  providers: [JobsService, PresidioService],
+  exports: [JobsService],
+})
+export class JobsModule {}
