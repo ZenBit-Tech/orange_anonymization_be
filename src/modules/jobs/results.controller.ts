@@ -42,28 +42,8 @@ export class ResultsController {
     res.send(JSON.stringify(results.mainContent, null, 2));
   }
 
-  @Get(':id/export/csv')
-  @ApiOperation({ summary: 'Export results in CSV format' })
-  @ApiProduces('text/csv')
-  @ApiResponse({ status: 200, description: 'File CSV' })
-  async exportCsv(
-    @Param('id') id: string,
-    @Req() req: RequestWithUser,
-    @Res() res: Response,
-  ): Promise<void> {
-    const results = await this.jobsService.getJobResults(id, req.user.sub);
-
-    const csvContent = `original,anonymized\n"${results.mainContent.originalText}","${results.mainContent.anonymizedText}"`;
-
-    res.setHeader('Content-disposition', `attachment; filename=result-${id}.csv`);
-    res.setHeader('Content-type', 'text/csv');
-    res.send(csvContent);
-  }
-
   @Get(':id/export/pdf')
-  @ApiOperation({
-    summary: 'Generate and download PDF Compliance Report',
-  })
+  @ApiOperation({ summary: 'Generate and download PDF Compliance Report' })
   @ApiProduces('application/pdf')
   @ApiResponse({ status: 200, description: 'Report PDF file' })
   async exportPdf(
@@ -72,6 +52,7 @@ export class ResultsController {
     @Res() res: Response,
   ): Promise<void> {
     const results = await this.jobsService.getJobResults(id, req.user.sub);
+    const job = await this.jobsService.findOne(id);
 
     const doc = new PDFDocument({ margin: 50 });
     const filename = `Compliance_Report_${id}.pdf`;
@@ -88,27 +69,74 @@ export class ResultsController {
     doc.moveDown();
     doc.fontSize(16).text('Audit Trail', { underline: true });
     doc.fontSize(12);
-    doc.text(`Framework: ${results.auditTrail.framework}`);
-    doc.text(`Start Time: ${results.auditTrail.timestamps.started}`);
-    doc.text(`End Time: ${results.auditTrail.timestamps.finished}`);
+    doc.text(`Framework: ${results.auditTrail.framework.toUpperCase()}`);
+    doc.text(`Start Time: ${new Date(results.auditTrail.timestamps.started).toUTCString()}`);
+    doc.text(`End Time: ${new Date(results.auditTrail.timestamps.finished).toUTCString()}`);
     doc.text(`Processing Time: ${results.auditTrail.processingTime}s`);
     doc.moveDown();
 
-    if (results.auditTrail.framework === 'HIPAA') {
+    if (results.auditTrail.framework.toUpperCase() === 'HIPAA') {
       doc.fontSize(14).text('HIPAA 18 Identifiers Checklist:');
       doc
         .fontSize(10)
+        .fillColor('gray')
         .text(
-          '- NAME, DATE, SSN, PHONE, FAX, EMAIL, ADDRESS, ACCOUNT, LICENSE, VEHICLE, URL, IP, BIOMETRIC, PHOTO, DEVICE, MRN, BENEFICIARY, CERTIFICATE',
+          'NAME, DATE, SSN, PHONE, FAX, EMAIL, ADDRESS, ACCOUNT, LICENSE, VEHICLE, URL, IP, BIOMETRIC, PHOTO, DEVICE, MRN, BENEFICIARY, CERTIFICATE',
         );
-      doc.moveDown();
+      doc.fillColor('black').moveDown();
     }
 
     doc.fontSize(14).text('Entity Summary:');
-    doc.fontSize(12).text('Entity Type | Method | Status');
-    doc.text('-----------------------------------');
-    doc.text('PERSON | Replace | Found');
-    doc.text('DATE | Generalize | Not Found');
+    doc.moveDown(0.5);
+
+    const presidioToHipaaMap: Record<string, string> = {
+      PERSON: 'NAME',
+      DATE_TIME: 'DATE',
+      EMAIL_ADDRESS: 'EMAIL',
+      PHONE_NUMBER: 'PHONE/FAX',
+      LOCATION: 'ADDRESS',
+      US_SSN: 'SSN',
+      IP_ADDRESS: 'IP',
+      MEDICAL_RECORD_NUMBER: 'MRN',
+    };
+
+    const headerY = doc.y;
+    doc.fontSize(10).text('Entity Type', 50, headerY);
+    doc.text('Method', 200, headerY);
+    doc.text('Result', 350, headerY);
+    doc.text(
+      '----------------------------------------------------------------------------------',
+      50,
+      headerY + 15,
+    );
+
+    let currentY = headerY + 30;
+
+    const foundEntityTypes = new Set(results.entityTable.map((e) => e.entity_type));
+    const strategies = job.wizardState.configSettings.strategies || {};
+
+    Object.entries(strategies).forEach(([hipaaType, method]) => {
+      const presidioType =
+        Object.keys(presidioToHipaaMap).find((key) => presidioToHipaaMap[key] === hipaaType) ||
+        hipaaType;
+      const isFound = foundEntityTypes.has(presidioType);
+
+      doc.text(hipaaType, 50, currentY);
+      doc.text(method as string, 200, currentY);
+
+      if (isFound) {
+        doc.fillColor('green').text('DETECTED', 350, currentY).fillColor('black');
+      } else {
+        doc.fillColor('gray').text('Not Found', 350, currentY).fillColor('black');
+      }
+
+      currentY += 20;
+
+      if (currentY > 700) {
+        doc.addPage();
+        currentY = 50;
+      }
+    });
 
     doc.end();
   }

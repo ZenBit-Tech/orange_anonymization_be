@@ -13,11 +13,10 @@ import {
   UploadedFile,
   ParseFilePipe,
   MaxFileSizeValidator,
-  FileTypeValidator,
   BadRequestException,
 } from '@nestjs/common';
 import { JobsService } from './jobs.service';
-import { Job, JobStatus, WizardStateDto } from './entities/job.entity';
+import { Job, JobStatus } from './entities/job.entity';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { JwtAuthGuard } from '../auth/guards/auth.guard';
@@ -86,12 +85,16 @@ export class JobsController {
   @HttpCode(HttpStatus.ACCEPTED)
   @ApiOperation({ summary: 'Start the analysis and anonymization process' })
   @ApiResponse({ status: 202, description: 'Request accepted for processing' })
-  async runAnalysis(@Param('id') id: string, @Req() req: RequestWithUser): Promise<Job> {
+  async runAnalysis(
+    @Param('id') id: string,
+    @Body() data: { originalText: string },
+    @Req() req: RequestWithUser,
+  ): Promise<Job> {
     const userId = req.user.sub;
 
     const job = await this.jobsService.update(id, { status: JobStatus.QUEUED }, userId);
 
-    this.eventEmitter.emit('job.run', { jobId: id, userId });
+    this.eventEmitter.emit('job.run', { jobId: id, userId, originalText: data.originalText });
 
     return job;
   }
@@ -119,14 +122,17 @@ export class JobsController {
     @Req() req: RequestWithUser,
     @UploadedFile(
       new ParseFilePipe({
-        validators: [
-          new MaxFileSizeValidator({ maxSize: 5 * 1024 * 1024 }),
-          new FileTypeValidator({ fileType: '.(csv|json|txt)' }),
-        ],
+        validators: [new MaxFileSizeValidator({ maxSize: 5 * 1024 * 1024 })],
       }),
     )
     file: Express.Multer.File,
   ): Promise<Job> {
+    const allowedTypes = ['text/plain', 'application/json', 'text/csv'];
+
+    if (!allowedTypes.includes(file.mimetype)) {
+      throw new BadRequestException(`Unsupported file type: ${file.mimetype}`);
+    }
+
     const userId = req.user.sub;
     const content = file.buffer.toString('utf-8');
 
@@ -136,17 +142,19 @@ export class JobsController {
 
     const lineCount = content.split('\n').length;
 
+    const existingJob = await this.jobsService.findOne(id);
+
     return this.jobsService.update(
       id,
       {
-        originalText: content,
         wizardState: {
+          ...existingJob.wizardState,
           inputData: {
             fileName: file.originalname,
             fileSize: file.size,
             lineCount: lineCount,
           },
-        } as unknown as Partial<WizardStateDto> as WizardStateDto,
+        },
       },
       userId,
     );

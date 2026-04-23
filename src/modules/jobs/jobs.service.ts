@@ -17,8 +17,8 @@ export class JobsService {
   ) {}
 
   @OnEvent('job.run')
-  async handleJobRunEvent(payload: { jobId: string; userId: string }) {
-    await this.processJob(payload.jobId, payload.userId);
+  async handleJobRunEvent(payload: { jobId: string; userId: string; originalText: string }) {
+    await this.processJob(payload.jobId, payload.userId, payload.originalText);
   }
 
   async createDraft(userId: string): Promise<Job> {
@@ -60,11 +60,26 @@ export class JobsService {
     return this.jobRepository.save(job);
   }
 
-  async processJob(jobId: string, userId: string): Promise<void> {
+  async processJob(jobId: string, userId: string, originalText: string): Promise<void> {
     const job = await this.jobRepository.findOne({
       where: { id: jobId, userId },
     });
     if (!job) return;
+
+    const hipaaToPresidioMap: Record<string, string> = {
+      NAME: 'PERSON',
+      DATE: 'DATE_TIME',
+      SSN: 'US_SSN',
+      PHONE: 'PHONE_NUMBER',
+      FAX: 'PHONE_NUMBER',
+      EMAIL: 'EMAIL_ADDRESS',
+      ADDRESS: 'LOCATION',
+      ACCOUNT: 'IBAN_CODE',
+      LICENSE: 'US_DRIVER_LICENSE',
+      URL: 'URL',
+      IP: 'IP_ADDRESS',
+      MRN: 'MEDICAL_RECORD_NUMBER',
+    };
 
     const timeout = setTimeout(
       async () => {
@@ -88,7 +103,7 @@ export class JobsService {
       const language = configSettings.language || 'en';
       const threshold = Number(configSettings.threshold) || 0.5;
 
-      const entitiesToAnalyze: string[] =
+      const hipaaEntities =
         frameworkSelection === 'HIPAA' && configSettings.method === 'Safe Harbor'
           ? [
               'NAME',
@@ -112,27 +127,30 @@ export class JobsService {
             ]
           : configSettings.entities || [];
 
+      const presidioEntities = hipaaEntities.map((entity) => hipaaToPresidioMap[entity] || entity);
+
       const analysisResults: AnalysisResult[] = await this.presidioService.analyzeText(
-        job.originalText,
+        originalText,
         language,
-        entitiesToAnalyze,
+        presidioEntities,
         threshold,
       );
 
       job.wizardState.analysisMetadata = analysisResults;
 
-      const strategies = (configSettings.strategies as Record<string, string>) || {};
+      const userStrategies = (configSettings.strategies as Record<string, string>) || {};
+      const presidioStrategies: Record<string, string> = {};
 
-      entitiesToAnalyze.forEach((entity) => {
-        if (!strategies[entity]) {
-          strategies[entity] = 'Replace';
-        }
+      hipaaEntities.forEach((hipaaEntity) => {
+        const presidioKey = hipaaToPresidioMap[hipaaEntity] || hipaaEntity;
+        const strategy = userStrategies[hipaaEntity] || 'Replace';
+        presidioStrategies[presidioKey] = strategy;
       });
 
       const anonymizedText: string = await this.presidioService.anonymizeText(
-        job.originalText,
+        originalText,
         analysisResults,
-        strategies,
+        presidioStrategies,
       );
 
       job.anonymizedText = anonymizedText;
@@ -197,7 +215,6 @@ export class JobsService {
 
     return {
       mainContent: {
-        originalText: job.originalText,
         anonymizedText: job.anonymizedText,
       },
       entityTable: job.wizardState.analysisMetadata || [],

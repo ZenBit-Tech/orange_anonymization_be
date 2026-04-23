@@ -7,7 +7,6 @@ export interface Result {
 }
 
 interface MainContent {
-  originalText: string;
   anonymizedText: string;
 }
 

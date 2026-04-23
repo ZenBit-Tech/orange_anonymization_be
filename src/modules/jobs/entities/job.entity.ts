@@ -76,9 +76,9 @@ export class Job {
   @Column({ nullable: true })
   framework: string;
 
-  @ApiPropertyOptional()
-  @Column({ type: 'text', nullable: true })
-  originalText: string;
+  // @ApiPropertyOptional()
+  // @Column({ type: 'text', nullable: true })
+  // originalText: string;
 
   @ApiPropertyOptional()
   @Column({ type: 'text', nullable: true })
