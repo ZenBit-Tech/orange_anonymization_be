@@ -76,22 +76,14 @@ export class EmailSenderService {
   }
 
   async requestMagicLink(email: string, token: string): Promise<{ message: string }> {
-    try {
-      const frontendUrl =
-        this.configService.get<string>('app.frontendUrl') ??
-        this.configService.get<string>('FRONTEND_URL') ??
-        '';
-      const verifyUrl = new URL(`/auth/verify/token/${token}`, frontendUrl).toString();
-      const html = renderMagicLinkTemplate({ verifyUrl });
-      await this.sendEmail(email, 'Sign in to De-ID Studio', html);
-      return { message: 'Magic link sent' };
-    } catch (error) {
-      this.logger.error(
-        `Failed to send magic link email to ${email}`,
-        error instanceof Error ? error.stack : undefined,
-      );
-      throw error;
-    }
+    const frontendUrl =
+      this.configService.get<string>('app.frontendUrl') ??
+      this.configService.get<string>('FRONTEND_URL') ??
+      '';
+    const verifyUrl = new URL(`/auth/verify/token/${token}`, frontendUrl).toString();
+    const html = renderMagicLinkTemplate({ verifyUrl });
+    await this.sendEmail(email, 'Sign in to De-ID Studio', html);
+    return { message: 'Magic link sent' };
   }
 
   async sendContactForm(data: ContactFormPayload): Promise<{ success: boolean; message: string }> {
@@ -125,7 +117,7 @@ export class EmailSenderService {
       };
     } catch (error) {
       this.logger.error(
-        `Failed to send contact form emails for ${email}`,
+        `Failed to send contact form emails for ${data.email}`,
         error instanceof Error ? error.stack : undefined,
       );
 
