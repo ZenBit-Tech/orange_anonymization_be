@@ -74,11 +74,19 @@ export class JobsService {
       FAX: 'PHONE_NUMBER',
       EMAIL: 'EMAIL_ADDRESS',
       ADDRESS: 'LOCATION',
-      ACCOUNT: 'IBAN_CODE',
-      LICENSE: 'US_DRIVER_LICENSE',
       URL: 'URL',
       IP: 'IP_ADDRESS',
+      LICENSE: 'US_DRIVER_LICENSE',
+      VEHICLE: 'US_PASSPORT',
+      BIOMETRIC: 'BIOMETRIC',
+      PHOTO: 'PHOTO',
+      DEVICE: 'IP_ADDRESS',
+      BENEFICIARY: 'PERSON',
+      CERTIFICATE: 'US_SSN',
+      ACCOUNT: 'IBAN_CODE',
       MRN: 'MEDICAL_RECORD_NUMBER',
+      HEALTH_PLAN: 'US_HEALTH_NUMBER',
+      ZIP: 'LOCATION',
     };
 
     const timeout = setTimeout(
@@ -104,7 +112,7 @@ export class JobsService {
       const threshold = Number(configSettings.threshold) || 0.5;
 
       const hipaaEntities =
-        frameworkSelection === 'HIPAA' && configSettings.method === 'Safe Harbor'
+        frameworkSelection === 'hipaa' && configSettings.method === 'Safe Harbor'
           ? [
               'NAME',
               'DATE',
