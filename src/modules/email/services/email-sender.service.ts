@@ -4,47 +4,48 @@ import { renderMagicLinkTemplate } from '@/modules/email/templates/magic-link.te
 import { renderContactReceiptTemplate } from '@/modules/email/templates/contact-receipt.template';
 import { renderContactAdminNotificationTemplate } from '@/modules/email/templates/contact-admin-notification.template';
 import * as nodemailer from 'nodemailer';
+import { Transporter } from 'nodemailer';
+import {
+  ContactFormPayload,
+  MagicLinkResponse,
+  RequestMagicLinkParams,
+  SendContactFormResponse,
+} from './types/email.types';
 
-interface ContactFormPayload {
-  firstName: string;
-  lastName: string;
-  email: string;
-  message: string;
-  company?: string;
+export interface SendEmailOptions {
+  to: string;
+  subject: string;
+  html: string;
 }
 
 @Injectable()
 export class EmailSenderService {
   private readonly logger = new Logger(EmailSenderService.name);
-  private readonly transporter;
+  private readonly transporter: Transporter;
   private readonly fromAddress: string;
   private readonly contactRecipientEmail: string;
+  private readonly frontendUrl: string;
+  private readonly magicLinkExpiresInSeconds: number;
 
   constructor(private readonly configService: ConfigService) {
-    const smtpHost =
-      this.configService.get<string>('mail.host') ||
-      this.configService.get<string>('SMTP_HOST') ||
-      this.configService.get<string>('MAIL_HOST') ||
-      'smtp.gmail.com';
-    const smtpPort =
-      this.configService.get<number>('mail.port') ??
-      this.configService.get<number>('MAIL_PORT') ??
-      587;
-    const smtpUser =
-      this.configService.get<string>('mail.user') ||
-      this.configService.get<string>('MAIL_USER') ||
-      '';
-    const smtpPass =
-      this.configService.get<string>('mail.pass') ||
-      this.configService.get<string>('MAIL_PASS') ||
-      '';
-    const configuredFrom =
-      this.configService.get<string>('mail.from') ||
-      this.configService.get<string>('MAIL_FROM') ||
-      smtpUser;
+    const smtpHost = this.configService.getOrThrow<string>('SMTP_HOST');
+    const smtpPort = this.configService.getOrThrow<number>('MAIL_PORT');
+    const smtpUser = this.configService.getOrThrow<string>('MAIL_USER');
+    const smtpPass = this.configService.getOrThrow<string>('MAIL_PASS');
+    const mailFrom = this.configService.getOrThrow<string>('MAIL_FROM');
+    const frontendUrl = this.configService.getOrThrow<string>('FRONTEND_URL');
+    const magicLinkExpiresIn = Number(
+      this.configService.getOrThrow<string>('MAGIC_LINK_EXPIRES_IN'),
+    );
 
-    this.fromAddress = configuredFrom;
-    this.contactRecipientEmail = configuredFrom || smtpUser;
+    if (Number.isNaN(magicLinkExpiresIn)) {
+      throw new Error('MAGIC_LINK_EXPIRES_IN must be a valid number');
+    }
+
+    this.fromAddress = mailFrom;
+    this.contactRecipientEmail = mailFrom;
+    this.frontendUrl = frontendUrl;
+    this.magicLinkExpiresInSeconds = magicLinkExpiresIn;
 
     this.transporter = nodemailer.createTransport({
       host: smtpHost,
@@ -57,7 +58,9 @@ export class EmailSenderService {
     });
   }
 
-  private async sendEmail(to: string, subject: string, html: string): Promise<void> {
+  private async sendEmail(options: SendEmailOptions): Promise<void> {
+    const { to, subject, html } = options;
+
     const info = await this.transporter.sendMail({
       from: `"De-ID Studio" <${this.fromAddress}>`,
       to,
@@ -67,32 +70,37 @@ export class EmailSenderService {
 
     if (info.rejected.length > 0) {
       this.logger.error(
-        `Email rejected for recipient ${to}. Subject: ${subject}. Rejected: ${info.rejected.join(', ')}`,
+        `Email rejected: to=${to}, subject=${subject}, rejected=${info.rejected.join(', ')}`,
       );
       throw new Error(`Email delivery rejected for ${to}`);
     }
 
-    this.logger.log(`Email sent: subject="${subject}" to="${to}" messageId="${info.messageId}"`);
+    this.logger.log(`Email sent: to=${to}, subject=${subject}, messageId=${info.messageId}`);
   }
 
   private getMagicLinkExpiryMinutes(): number {
-    const expiresIn = Number(this.configService.get('MAGIC_LINK_EXPIRES_IN') ?? 900);
-    return Math.floor(expiresIn / 60);
+    return Math.floor(this.magicLinkExpiresInSeconds / 60);
   }
 
-  async requestMagicLink(email: string, token: string): Promise<{ message: string }> {
+  async requestMagicLink(params: RequestMagicLinkParams): Promise<MagicLinkResponse> {
+    const { email, token } = params;
+
     try {
-      const frontendUrl =
-        this.configService.get<string>('app.frontendUrl') ??
-        this.configService.get<string>('FRONTEND_URL') ??
-        '';
-      const verifyUrl = new URL(`/auth/verify/token/${token}`, frontendUrl).toString();
+      const verifyUrl = new URL(`/auth/verify/token/${token}`, this.frontendUrl).toString();
+
       const expiresInMinutes = this.getMagicLinkExpiryMinutes();
+
       const html = renderMagicLinkTemplate({
         verifyUrl,
         expiresInMinutes,
       });
-      await this.sendEmail(email, 'Sign in to De-ID Studio', html);
+
+      await this.sendEmail({
+        to: email,
+        subject: 'Sign in to De-ID Studio',
+        html,
+      });
+
       return { message: 'Magic link sent' };
     } catch (error) {
       this.logger.error(
@@ -103,11 +111,11 @@ export class EmailSenderService {
     }
   }
 
-  async sendContactForm(data: ContactFormPayload): Promise<{ success: boolean; message: string }> {
+  async sendContactForm(data: ContactFormPayload): Promise<SendContactFormResponse> {
     try {
       const { firstName, lastName, email, message, company } = data;
 
-      const adminNotificationHtml = renderContactAdminNotificationTemplate({
+      const adminHtml = renderContactAdminNotificationTemplate({
         firstName,
         lastName,
         email,
@@ -115,18 +123,22 @@ export class EmailSenderService {
         company,
       });
 
-      await this.sendEmail(
-        this.contactRecipientEmail,
-        'New Contact Form Submission - De-ID Studio',
-        adminNotificationHtml,
-      );
+      await this.sendEmail({
+        to: this.contactRecipientEmail,
+        subject: 'New Contact Form Submission - De-ID Studio',
+        html: adminHtml,
+      });
 
-      const contactReceiptHtml = renderContactReceiptTemplate({
+      const receiptHtml = renderContactReceiptTemplate({
         firstName,
         message,
       });
 
-      await this.sendEmail(email, 'We received your message - De-ID Studio', contactReceiptHtml);
+      await this.sendEmail({
+        to: email,
+        subject: 'We received your message - De-ID Studio',
+        html: receiptHtml,
+      });
 
       return {
         success: true,
