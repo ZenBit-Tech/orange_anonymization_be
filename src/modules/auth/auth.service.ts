@@ -18,7 +18,10 @@ export class AuthService {
     const payload = { sub: user.id, email: user.email };
     const token = this.jwtService.sign(payload);
 
-    return await this.emailService.requestMagicLink(email, token);
+    return await this.emailService.requestMagicLink({
+      email,
+      token,
+    });
   }
 
   async verify(token: string): Promise<VerifyResponseDto> {

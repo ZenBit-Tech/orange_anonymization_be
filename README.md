@@ -20,16 +20,16 @@ Built with **NestJS 10 + TypeORM + MySQL + Microsoft Presidio**.
 
 ## Tech Stack
 
-| Layer | Technology |
-|-------|-----------|
-| Framework | NestJS 10 + TypeScript (strict mode) |
-| ORM | TypeORM with MySQL 8 |
-| Auth | Magic Link + JWT (Passport) |
-| Validation | class-validator + class-transformer |
-| Docs | Swagger / OpenAPI |
-| Config | @nestjs/config (ConfigService) |
-| PII Detection | Microsoft Presidio (Docker) |
-| Testing | Jest |
+| Layer         | Technology                           |
+| ------------- | ------------------------------------ |
+| Framework     | NestJS 10 + TypeScript (strict mode) |
+| ORM           | TypeORM with MySQL 8                 |
+| Auth          | Magic Link + JWT (Passport)          |
+| Validation    | class-validator + class-transformer  |
+| Docs          | Swagger / OpenAPI                    |
+| Config        | @nestjs/config (ConfigService)       |
+| PII Detection | Microsoft Presidio (Docker)          |
+| Testing       | Jest                                 |
 
 ---
 
@@ -134,20 +134,20 @@ backend/
 
 ## API Endpoints
 
-| Method | Endpoint | Description | Auth |
-|--------|----------|-------------|------|
-| POST | /api/auth/magic-link | Request magic link | No |
-| POST | /api/auth/verify | Verify token, get JWT | No |
-| GET | /api/users | List users | JWT |
-| GET | /api/users/me | Current user profile | JWT |
-| GET | /api/users/:id | User by ID | JWT |
-| PATCH | /api/users/:id | Update user | JWT |
-| DELETE | /api/users/:id | Delete user | JWT |
-| POST | /api/de-identification/analyze | Analyze text for PII | JWT |
-| POST | /api/de-identification/anonymize | Anonymize text | JWT |
-| GET | /api/de-identification/documents | User documents | JWT |
-| POST | /api/synthetic-data/generate | Generate synthetic data | JWT |
-| GET | /api/dashboard | Dashboard metrics | JWT |
+| Method | Endpoint                         | Description             | Auth |
+| ------ | -------------------------------- | ----------------------- | ---- |
+| POST   | /api/auth/magic-link             | Request magic link      | No   |
+| POST   | /api/auth/verify                 | Verify token, get JWT   | No   |
+| GET    | /api/users                       | List users              | JWT  |
+| GET    | /api/users/me                    | Current user profile    | JWT  |
+| GET    | /api/users/:id                   | User by ID              | JWT  |
+| PATCH  | /api/users/:id                   | Update user             | JWT  |
+| DELETE | /api/users/:id                   | Delete user             | JWT  |
+| POST   | /api/de-identification/analyze   | Analyze text for PII    | JWT  |
+| POST   | /api/de-identification/anonymize | Anonymize text          | JWT  |
+| GET    | /api/de-identification/documents | User documents          | JWT  |
+| POST   | /api/synthetic-data/generate     | Generate synthetic data | JWT  |
+| GET    | /api/dashboard                   | Dashboard metrics       | JWT  |
 
 Full documentation with request/response schemas: http://localhost:3000/api/docs
 
@@ -172,29 +172,30 @@ Full documentation with request/response schemas: http://localhost:3000/api/docs
 
 ## Environment Variables
 
-| Variable | Default | Required | Description |
-|----------|---------|----------|-------------|
-| NODE_ENV | development | | Environment |
-| PORT | 3000 | | Server port |
-| DB_HOST | localhost | Yes | MySQL host |
-| DB_PORT | 3306 | Yes | MySQL port |
-| DB_USERNAME | clinical_user | Yes | MySQL user |
-| DB_PASSWORD | | Yes | MySQL password |
-| DB_NAME | clinical_studio | Yes | Database name |
-| DB_SYNCHRONIZE | true | | Auto-sync schema (false in prod) |
-| JWT_SECRET | | Yes | JWT signing secret (64+ chars) |
-| JWT_EXPIRES_IN | 1h | | JWT token lifetime |
-| MAGIC_LINK_EXPIRES_IN | 900 | | Magic link TTL in seconds |
-| ENCRYPTION_KEY | | Yes | AES-128 key (16 chars) |
-| PRESIDIO_ANALYZER_URL | http://localhost:5001 | | Presidio analyzer |
-| PRESIDIO_ANONYMIZER_URL | http://localhost:5002 | | Presidio anonymizer |
-| CORS_ORIGIN | http://localhost:5173 | | Frontend URL |
+| Variable                | Default               | Required | Description                      |
+| ----------------------- | --------------------- | -------- | -------------------------------- |
+| NODE_ENV                | development           |          | Environment                      |
+| PORT                    | 3000                  |          | Server port                      |
+| DB_HOST                 | localhost             | Yes      | MySQL host                       |
+| DB_PORT                 | 3306                  | Yes      | MySQL port                       |
+| DB_USERNAME             | clinical_user         | Yes      | MySQL user                       |
+| DB_PASSWORD             |                       | Yes      | MySQL password                   |
+| DB_NAME                 | clinical_studio       | Yes      | Database name                    |
+| DB_SYNCHRONIZE          | true                  |          | Auto-sync schema (false in prod) |
+| JWT_SECRET              |                       | Yes      | JWT signing secret (64+ chars)   |
+| JWT_EXPIRES_IN          | 1h                    |          | JWT token lifetime               |
+| MAGIC_LINK_EXPIRES_IN   | 900                   |          | Magic link TTL in seconds        |
+| ENCRYPTION_KEY          |                       | Yes      | AES-128 key (16 chars)           |
+| PRESIDIO_ANALYZER_URL   | http://localhost:5001 |          | Presidio analyzer                |
+| PRESIDIO_ANONYMIZER_URL | http://localhost:5002 |          | Presidio anonymizer              |
+| CORS_ORIGIN             | http://localhost:5173 |          | Frontend URL                     |
 
 ---
 
 ## Code Quality Rules (PR Checklist)
 
 ### General
+
 - No `any` types — enforced by ESLint
 - No `process.env` directly — use `ConfigService`
 - No `console.log` — use NestJS `Logger`
@@ -204,6 +205,7 @@ Full documentation with request/response schemas: http://localhost:3000/api/docs
 - Import order: node_modules → absolute (@/) → relative
 
 ### Backend-Specific
+
 - Swagger docs for every endpoint (2xx, 4xx, 5xx)
 - UUID primary keys on all entities
 - `@Index` on frequently queried columns
@@ -282,18 +284,18 @@ npm run start:dev
 
 ## Scripts
 
-| Command | Description |
-|---------|-------------|
-| `npm run start:dev` | Development with hot-reload |
-| `npm run build` | Production build |
-| `npm run start:prod` | Run production build |
-| `npm run lint` | ESLint check |
-| `npm run format` | Prettier format |
-| `npm test` | Run unit tests |
-| `npm run test:cov` | Tests with coverage |
-| `npm run migration:run` | Apply migrations |
+| Command                      | Description                            |
+| ---------------------------- | -------------------------------------- |
+| `npm run start:dev`          | Development with hot-reload            |
+| `npm run build`              | Production build                       |
+| `npm run start:prod`         | Run production build                   |
+| `npm run lint`               | ESLint check                           |
+| `npm run format`             | Prettier format                        |
+| `npm test`                   | Run unit tests                         |
+| `npm run test:cov`           | Tests with coverage                    |
+| `npm run migration:run`      | Apply migrations                       |
 | `npm run migration:generate` | Generate migration from entity changes |
-| `npm run db:seed` | Seed admin user |
+| `npm run db:seed`            | Seed admin user                        |
 
 ---
 
@@ -316,16 +318,16 @@ Configure these in the backend repository's GitHub Settings:
 
 **Secrets:**
 
-| Name | Description |
-|------|-------------|
-| `GH_PAT` | Read-only GitHub PAT with `repo` scope for the frontend repo |
-| `HEROKU_API_KEY` | Heroku API key for Container Registry auth and releases |
-| `HEROKU_EMAIL` | Heroku account email for Container Registry auth |
+| Name             | Description                                                  |
+| ---------------- | ------------------------------------------------------------ |
+| `GH_PAT`         | Read-only GitHub PAT with `repo` scope for the frontend repo |
+| `HEROKU_API_KEY` | Heroku API key for Container Registry auth and releases      |
+| `HEROKU_EMAIL`   | Heroku account email for Container Registry auth             |
 
 **Repository variables:**
 
-| Name | Example | Description |
-|------|---------|-------------|
+| Name              | Example                   | Description            |
+| ----------------- | ------------------------- | ---------------------- |
 | `HEROKU_APP_NAME` | `orange-anonymization-be` | Target Heroku app name |
 
 > The frontend repository and branch are pinned in the workflow file itself via the `FRONTEND_REPO` and `FRONTEND_BRANCH` env vars. Update those values in `.github/workflows/unified-build.yml` if the frontend source changes.
