@@ -17,6 +17,13 @@ export class User {
   @Column()
   email: string;
 
+  @Index()
+  @Column({ type: 'varchar', nullable: true })
+  magicLinkToken: string | null;
+
+  @Column({ type: 'timestamp', nullable: true })
+  magicLinkExpiresAt: Date | null;
+
   @OneToMany(() => Job, (job) => job.user)
   jobs: Job[];
 

@@ -1,5 +1,5 @@
 {
-  "$schema": "https://json.schemastore.org/tsconfig",
+  // "$schema": "https://json.schemastore.org/tsconfig",
   "compilerOptions": {
     "module": "commonjs",
     "declaration": true,
@@ -11,8 +11,8 @@
     "sourceMap": true,
     "outDir": "./dist",
     "baseUrl": "./",
-    "ignoreDeprecations": "6.0",
-    "rootDir": "./src",
+    // "ignoreDeprecations": "6.0",
+    "rootDir": ".",
     "incremental": true,
     "skipLibCheck": true,
     "strictNullChecks": true,
@@ -24,10 +24,10 @@
     "noImplicitReturns": true,
     "noUnusedLocals": false, // TODO: re-enable once stub services are implemented
     "esModuleInterop": true,
-    "types": ["node", "express", "multer"],
+    "types": ["node", "jest", "express", "multer"],
     "paths": {
       "@/*": ["src/*"]
     }
   },
-  "include": ["src/**/*"]
+  "include": ["src/**/*", "test/**/*"]
 }
