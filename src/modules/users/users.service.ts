@@ -45,4 +45,30 @@ export class UsersService {
 
     return UserMapper.toResponse(user);
   }
+
+  async findByMagicLinkToken(token: string): Promise<User | null> {
+    return this.usersRepository.findOne({
+      where: { magicLinkToken: token },
+    });
+  }
+
+  async updateMagicLink(id: string, token: string, expiresAt: Date): Promise<void> {
+    await this.usersRepository.update(
+      { id },
+      {
+        magicLinkToken: token,
+        magicLinkExpiresAt: expiresAt,
+      },
+    );
+  }
+
+  async clearMagicLink(id: string): Promise<void> {
+    await this.usersRepository.update(
+      { id },
+      {
+        magicLinkToken: null,
+        magicLinkExpiresAt: null,
+      },
+    );
+  }
 }

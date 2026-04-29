@@ -4,6 +4,7 @@ import { UsersService } from '@/modules/users/users.service';
 import { EmailSenderService } from '@/modules/email/services/email-sender.service';
 import { LoginMessageDto } from './dto/login-message.dto';
 import { VerifyResponseDto } from './dto/verify-response.dto';
+import * as crypto from 'crypto';
 
 @Injectable()
 export class AuthService {
@@ -15,32 +16,39 @@ export class AuthService {
 
   async login(email: string): Promise<LoginMessageDto> {
     const user = await this.usersService.upsert(email);
-    const payload = { sub: user.id, email: user.email };
-    const token = this.jwtService.sign(payload);
 
-    return await this.emailService.requestMagicLink({
+    const token = crypto.randomBytes(32).toString('hex');
+    const expiresAt = new Date(Date.now() + 60 * 60 * 1000);
+
+    await this.usersService.updateMagicLink(user.id, token, expiresAt);
+
+    return this.emailService.requestMagicLink({
       email,
       token,
     });
   }
 
   async verify(token: string): Promise<VerifyResponseDto> {
-    try {
-      const payload = this.jwtService.verify(token);
-      const user = await this.usersService.findById(payload.sub);
+    const cleanToken = token.trim();
+    const user = await this.usersService.findByMagicLinkToken(cleanToken);
 
-      if (!user) {
-        throw new UnauthorizedException('User not found');
-      }
-
-      const accessToken = this.jwtService.sign({
-        sub: user.id,
-        email: user.email,
-      });
-
-      return { accessToken };
-    } catch (error) {
-      throw new UnauthorizedException('Invalid or expired token');
+    if (!user) {
+      throw new UnauthorizedException('Invalid token');
     }
+
+    const now = new Date();
+
+    if (!user.magicLinkExpiresAt || user.magicLinkExpiresAt < now) {
+      throw new UnauthorizedException('Token expired');
+    }
+
+    await this.usersService.clearMagicLink(user.id);
+
+    const accessToken = await this.jwtService.signAsync({
+      sub: user.id,
+      email: user.email,
+    });
+
+    return { accessToken };
   }
 }
