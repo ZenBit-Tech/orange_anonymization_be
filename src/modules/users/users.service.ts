@@ -53,16 +53,22 @@ export class UsersService {
   }
 
   async updateMagicLink(id: string, token: string, expiresAt: Date): Promise<void> {
-    await this.usersRepository.update(id, {
-      magicLinkToken: token,
-      magicLinkExpiresAt: expiresAt,
-    });
+    await this.usersRepository.update(
+      { id },
+      {
+        magicLinkToken: token,
+        magicLinkExpiresAt: expiresAt,
+      },
+    );
   }
 
   async clearMagicLink(id: string): Promise<void> {
-    await this.usersRepository.update(id, {
-      magicLinkToken: null,
-      magicLinkExpiresAt: null,
-    });
+    await this.usersRepository.update(
+      { id },
+      {
+        magicLinkToken: null,
+        magicLinkExpiresAt: null,
+      },
+    );
   }
 }

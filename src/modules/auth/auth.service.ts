@@ -16,6 +16,7 @@ export class AuthService {
 
   async login(email: string): Promise<LoginMessageDto> {
     const user = await this.usersService.upsert(email);
+
     const token = crypto.randomBytes(32).toString('hex');
     const expiresAt = new Date(Date.now() + 60 * 60 * 1000);
 
@@ -28,7 +29,8 @@ export class AuthService {
   }
 
   async verify(token: string): Promise<VerifyResponseDto> {
-    const user = await this.usersService.findByMagicLinkToken(token);
+    const cleanToken = token.trim();
+    const user = await this.usersService.findByMagicLinkToken(cleanToken);
 
     if (!user) {
       throw new UnauthorizedException('Invalid token');
@@ -36,7 +38,7 @@ export class AuthService {
 
     const now = new Date();
 
-    if (user.magicLinkExpiresAt === null || user.magicLinkExpiresAt < now) {
+    if (!user.magicLinkExpiresAt || user.magicLinkExpiresAt < now) {
       throw new UnauthorizedException('Token expired');
     }
 
