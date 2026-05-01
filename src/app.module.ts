@@ -6,6 +6,7 @@ import configuration from './config/configuration';
 import { AuthModule } from './modules/auth/auth.module';
 import { JobsModule } from './modules/jobs/jobs.module';
 import { DashboardModule } from './modules/dashboard/dashboard.module';
+import { HealthModule } from './modules/health/health.module';
 const DB_RETRY_ATTEMPTS = 10;
 const DB_RETRY_DELAY = 3_000;
 
@@ -64,6 +65,7 @@ const DB_RETRY_DELAY = 3_000;
     AuthModule,
     JobsModule,
     DashboardModule,
+    HealthModule,
   ],
 })
 export class AppModule {}
