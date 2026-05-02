@@ -1,16 +1,14 @@
-import { join } from 'path';
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { ServeStaticModule } from '@nestjs/serve-static';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { MailerModule } from '@nestjs-modules/mailer';
 import configuration from './config/configuration';
 import { AuthModule } from './modules/auth/auth.module';
 import { JobsModule } from './modules/jobs/jobs.module';
 import { DashboardModule } from './modules/dashboard/dashboard.module';
+import { HealthModule } from './modules/health/health.module';
 const DB_RETRY_ATTEMPTS = 10;
 const DB_RETRY_DELAY = 3_000;
-const FRONTEND_DIST_DIR = 'frontend-dist';
 
 @Module({
   imports: [
@@ -18,11 +16,6 @@ const FRONTEND_DIST_DIR = 'frontend-dist';
       isGlobal: true,
       load: [configuration],
       envFilePath: '.env',
-    }),
-
-    ServeStaticModule.forRoot({
-      rootPath: join(process.cwd(), FRONTEND_DIST_DIR),
-      exclude: ['/api/(.*)'],
     }),
 
     TypeOrmModule.forRootAsync({
@@ -72,6 +65,7 @@ const FRONTEND_DIST_DIR = 'frontend-dist';
     AuthModule,
     JobsModule,
     DashboardModule,
+    HealthModule,
   ],
 })
 export class AppModule {}
