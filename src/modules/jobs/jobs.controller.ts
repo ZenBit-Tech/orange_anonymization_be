@@ -161,6 +161,17 @@ export class JobsController {
     );
   }
 
+  @Patch(':id/entities/:entityId/toggle')
+  @ApiOperation({ summary: 'Toggle entity inclusion/exclusion' })
+  async toggleEntity(
+    @Param('id') id: string,
+    @Param('entityId') entityId: string,
+    @Req() req: RequestWithUser,
+    @Body('originalText') originalText: string,
+  ): Promise<Job> {
+    return this.jobsService.toggleEntity(id, entityId, req.user.sub, originalText);
+  }
+
   @Get(':id')
   @ApiOperation({ summary: 'Get job details' })
   @ApiResponse({ status: 200, type: Job })

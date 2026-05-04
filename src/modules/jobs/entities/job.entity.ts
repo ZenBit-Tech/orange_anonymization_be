@@ -11,10 +11,12 @@ import {
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export interface AnalysisMetadata {
+  id: string;
   start: number;
   end: number;
   score: number;
   entity_type: string;
+  isExcluded?: boolean;
   recognition_metadata?: Record<string, unknown>;
 }
 
@@ -75,10 +77,6 @@ export class Job {
   @ApiPropertyOptional({ example: 'HIPAA' })
   @Column({ nullable: true })
   framework: string;
-
-  // @ApiPropertyOptional()
-  // @Column({ type: 'text', nullable: true })
-  // originalText: string;
 
   @ApiPropertyOptional()
   @Column({ type: 'text', nullable: true })

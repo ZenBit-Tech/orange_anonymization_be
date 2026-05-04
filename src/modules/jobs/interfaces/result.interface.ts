@@ -4,6 +4,11 @@ export interface Result {
   mainContent: MainContent;
   entityTable: AnalysisMetadata[];
   auditTrail: AuditTrail;
+  stats: {
+    detected: number;
+    processed: number;
+    avgConfidence: number;
+  };
 }
 
 interface MainContent {

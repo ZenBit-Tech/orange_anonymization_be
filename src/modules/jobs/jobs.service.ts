@@ -1,7 +1,7 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DeepPartial, Repository } from 'typeorm';
-import { Job, JobStatus } from './entities/job.entity';
+import { AnalysisMetadata, Job, JobStatus } from './entities/job.entity';
 import { OnEvent } from '@nestjs/event-emitter';
 import { PresidioService } from './presidio.service';
 import { Result } from './interfaces/result.interface';
@@ -144,7 +144,13 @@ export class JobsService {
         threshold,
       );
 
-      job.wizardState.analysisMetadata = analysisResults;
+      const analysisMetadata: AnalysisMetadata[] = analysisResults.map((res, index) => ({
+        id: `ent-${index}-${Date.now()}`,
+        ...res,
+        isExcluded: false,
+      }));
+
+      job.wizardState.analysisMetadata = analysisMetadata;
 
       const userStrategies = (configSettings.strategies as Record<string, string>) || {};
       const presidioStrategies: Record<string, string> = {};
@@ -221,11 +227,21 @@ export class JobsService {
       throw new BadRequestException('Processing not yet complete');
     }
 
+    const metadata = job.wizardState.analysisMetadata || [];
+
     return {
       mainContent: {
         anonymizedText: job.anonymizedText,
       },
-      entityTable: job.wizardState.analysisMetadata || [],
+      stats: {
+        detected: metadata.length,
+        processed: metadata.filter((e) => !e.isExcluded).length,
+        avgConfidence:
+          metadata.length > 0
+            ? metadata.reduce((acc, curr) => acc + curr.score, 0) / metadata.length
+            : 0,
+      },
+      entityTable: metadata,
       auditTrail: {
         jobId: job.id,
         framework: job.framework,
@@ -242,6 +258,84 @@ export class JobsService {
     const trimmed = text.trim();
     if (trimmed.length < 50) {
       throw new BadRequestException('Text must be at least 50 characters');
+    }
+  }
+
+  async toggleEntity(
+    jobId: string,
+    entityId: string,
+    userId: string,
+    originalText: string,
+  ): Promise<Job> {
+    const job = await this.jobRepository.findOne({ where: { id: jobId, userId } });
+
+    if (!job) {
+      throw new NotFoundException('Job not found or access denied');
+    }
+
+    if (!originalText) {
+      throw new BadRequestException('Original text is missing. Cannot re-process anonymization.');
+    }
+
+    const metadata = job.wizardState.analysisMetadata || [];
+    const entityIndex = metadata.findIndex((e) => e.id === entityId);
+
+    if (entityIndex === -1) {
+      throw new NotFoundException(`Entity with ID ${entityId} not found in this job`);
+    }
+
+    metadata[entityIndex].isExcluded = !metadata[entityIndex].isExcluded;
+
+    const activeEntities = metadata.filter((e) => !e.isExcluded);
+
+    const userStrategies =
+      (job.wizardState.configSettings.strategies as Record<string, string>) || {};
+    const presidioStrategies: Record<string, string> = {};
+
+    const hipaaToPresidioMap: Record<string, string> = {
+      NAME: 'PERSON',
+      DATE: 'DATE_TIME',
+      SSN: 'US_SSN',
+      PHONE: 'PHONE_NUMBER',
+      FAX: 'PHONE_NUMBER',
+      EMAIL: 'EMAIL_ADDRESS',
+      ADDRESS: 'LOCATION',
+      URL: 'URL',
+      IP: 'IP_ADDRESS',
+      LICENSE: 'US_DRIVER_LICENSE',
+      VEHICLE: 'US_PASSPORT',
+      BIOMETRIC: 'BIOMETRIC',
+      PHOTO: 'PHOTO',
+      DEVICE: 'IP_ADDRESS',
+      BENEFICIARY: 'PERSON',
+      CERTIFICATE: 'US_SSN',
+      ACCOUNT: 'IBAN_CODE',
+      MRN: 'MEDICAL_RECORD_NUMBER',
+      HEALTH_PLAN: 'US_HEALTH_NUMBER',
+      ZIP: 'LOCATION',
+    };
+
+    Object.entries(userStrategies).forEach(([hipaaType, strategy]) => {
+      const presidioKey = hipaaToPresidioMap[hipaaType] || hipaaType;
+      presidioStrategies[presidioKey] = strategy;
+    });
+
+    try {
+      const newAnonymizedText = await this.presidioService.anonymizeText(
+        originalText,
+        activeEntities,
+        presidioStrategies,
+      );
+
+      job.anonymizedText = newAnonymizedText;
+      job.wizardState.analysisMetadata = metadata;
+      job.updatedAt = new Date();
+
+      return await this.jobRepository.save(job);
+    } catch (error) {
+      throw new BadRequestException(
+        `Failed to re-anonymize text: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      );
     }
   }
 }
