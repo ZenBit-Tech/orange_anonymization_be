@@ -12,9 +12,5 @@ COPY package*.json ./
 RUN npm ci --omit=dev
 COPY --from=build /app/dist ./dist
 
-# Frontend SPA build (placed by CI or manually before docker build)
-RUN mkdir -p frontend-dist
-COPY frontend-dist/ ./frontend-dist/
-
 EXPOSE 3000
 CMD ["node", "dist/main.js"]
