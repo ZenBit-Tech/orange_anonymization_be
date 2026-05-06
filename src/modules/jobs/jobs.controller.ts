@@ -93,16 +93,9 @@ export class JobsController {
   ): Promise<Job> {
     const userId = req.user.sub;
 
-    const job = await this.jobsService.update(
-      id,
-      {
-        status: JobStatus.QUEUED,
-        sourceText: data.originalText,
-      },
-      userId,
-    );
+    const job = await this.jobsService.update(id, { status: JobStatus.QUEUED }, userId);
 
-    this.eventEmitter.emit('job.run', { jobId: id, userId });
+    this.eventEmitter.emit('job.run', { jobId: id, userId, originalText: data.originalText });
 
     return job;
   }
@@ -155,7 +148,6 @@ export class JobsController {
     return this.jobsService.update(
       id,
       {
-        sourceText: content,
         wizardState: {
           ...existingJob.wizardState,
           inputData: {
@@ -175,7 +167,7 @@ export class JobsController {
     @Param('id') id: string,
     @Param('entityId') entityId: string,
     @Req() req: RequestWithUser,
-    @Body('originalText') originalText?: string,
+    @Body('originalText') originalText: string,
   ): Promise<Job> {
     return this.jobsService.toggleEntity(id, entityId, req.user.sub, originalText);
   }

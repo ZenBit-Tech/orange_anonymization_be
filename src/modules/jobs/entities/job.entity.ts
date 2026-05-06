@@ -78,10 +78,6 @@ export class Job {
   @Column({ nullable: true })
   framework: string;
 
-  @ApiPropertyOptional({ description: 'Persisted source text used for analysis and replay' })
-  @Column({ type: 'text', nullable: true })
-  sourceText?: string | null;
-
   @ApiPropertyOptional()
   @Column({ type: 'text', nullable: true })
   anonymizedText: string;
