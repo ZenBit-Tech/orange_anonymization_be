@@ -17,8 +17,8 @@ export class JobsService {
   ) {}
 
   @OnEvent('job.run')
-  async handleJobRunEvent(payload: { jobId: string; userId: string; originalText: string }) {
-    await this.processJob(payload.jobId, payload.userId, payload.originalText);
+  async handleJobRunEvent(payload: { jobId: string; userId: string }) {
+    await this.processJob(payload.jobId, payload.userId);
   }
 
   async createDraft(userId: string): Promise<Job> {
@@ -31,6 +31,7 @@ export class JobsService {
         inputData: {},
         configSettings: {},
       },
+      sourceText: null,
     };
     const job = this.jobRepository.create(jobData);
     return this.jobRepository.save(job);
@@ -60,11 +61,19 @@ export class JobsService {
     return this.jobRepository.save(job);
   }
 
-  async processJob(jobId: string, userId: string, originalText: string): Promise<void> {
+  async processJob(jobId: string, userId: string): Promise<void> {
     const job = await this.jobRepository.findOne({
       where: { id: jobId, userId },
     });
     if (!job) return;
+
+    const originalText = job.sourceText;
+    if (!originalText) {
+      job.status = JobStatus.FAILED;
+      job.errorMessage = 'Source text is missing. Please re-open the analysis flow.';
+      await this.jobRepository.save(job);
+      return;
+    }
 
     const hipaaToPresidioMap: Record<string, string> = {
       NAME: 'PERSON',
@@ -265,7 +274,7 @@ export class JobsService {
     jobId: string,
     entityId: string,
     userId: string,
-    originalText: string,
+    originalText?: string,
   ): Promise<Job> {
     const job = await this.jobRepository.findOne({ where: { id: jobId, userId } });
 
@@ -273,7 +282,9 @@ export class JobsService {
       throw new NotFoundException('Job not found or access denied');
     }
 
-    if (!originalText) {
+    const sourceText = originalText || job.sourceText;
+
+    if (!sourceText) {
       throw new BadRequestException('Original text is missing. Cannot re-process anonymization.');
     }
 
@@ -322,7 +333,7 @@ export class JobsService {
 
     try {
       const newAnonymizedText = await this.presidioService.anonymizeText(
-        originalText,
+        sourceText,
         activeEntities,
         presidioStrategies,
       );
