@@ -150,10 +150,8 @@ export class EmailSenderService {
         error instanceof Error ? error.stack : undefined,
       );
 
-      return {
-        success: false,
-        message: 'Failed to send form data',
-      };
+      // Propagate the error so callers (controller/tests) receive a 500
+      throw error;
     }
   }
 }
