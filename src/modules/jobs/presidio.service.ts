@@ -19,7 +19,7 @@ export class PresidioService {
   ): Promise<AnalysisResult[]> {
     try {
       const response = await axios.post(
-        `${this.configService.get<string>('ANALYZER_URL')}/analyze`,
+        `${this.configService.get<string>('presidio.analyzerUrl')}/analyze`,
         {
           text,
           language,
@@ -52,7 +52,7 @@ export class PresidioService {
 
     try {
       const response = await axios.post<AnonymizeResponse>(
-        `${this.configService.get<string>('ANONYMIZER_URL')}/anonymize`,
+        `${this.configService.get<string>('presidio.anonymizerUrl')}/anonymize`,
         {
           text,
           analyzer_results: analyzeResults,
