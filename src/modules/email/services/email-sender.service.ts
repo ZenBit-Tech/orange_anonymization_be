@@ -149,8 +149,6 @@ export class EmailSenderService {
         `Failed to send contact form emails for ${data.email}`,
         error instanceof Error ? error.stack : undefined,
       );
-
-      // Propagate the error so callers (controller/tests) receive a 500
       throw error;
     }
   }

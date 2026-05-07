@@ -44,14 +44,12 @@ describe('Email E2E', () => {
   it('POST /email/contact with missing required fields returns 400', async () => {
     const payload = {
       firstName: 'John',
-      // missing lastName and email and message
     };
 
     await request(app.getHttpServer()).post('/email/contact').send(payload).expect(400);
   });
 
   it('POST /email/contact when email service throws returns 500', async () => {
-    // create isolated app that throws from the service
     const moduleFixture2 = await Test.createTestingModule({
       controllers: [EmailController],
       providers: [EmailSenderService],
