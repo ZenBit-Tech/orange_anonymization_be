@@ -1,6 +1,6 @@
 import { ConfigService } from '@nestjs/config';
 import * as nodemailer from 'nodemailer';
-import { EmailSenderService } from './email-sender.service';
+import { EmailSenderService } from '../../src/modules/email/services/email-sender.service';
 
 jest.mock('nodemailer');
 
