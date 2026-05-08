@@ -149,11 +149,7 @@ export class EmailSenderService {
         `Failed to send contact form emails for ${data.email}`,
         error instanceof Error ? error.stack : undefined,
       );
-
-      return {
-        success: false,
-        message: 'Failed to send form data',
-      };
+      throw error;
     }
   }
 }
