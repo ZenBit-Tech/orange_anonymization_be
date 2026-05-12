@@ -1,12 +1,16 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { DeepPartial, Repository } from 'typeorm';
+import { Between, DeepPartial, Repository } from 'typeorm';
 import { AnalysisMetadata, Job, JobStatus } from './entities/job.entity';
 import { OnEvent } from '@nestjs/event-emitter';
 import { PresidioService } from './presidio.service';
 import { Result } from './interfaces/result.interface';
 import { AnalysisResult } from './interfaces/presidio.interface';
-import { ChartData, DashboardData } from '../dashboard/interfaces/dashboard-data.interface';
+import {
+  DashboardData,
+  DistributionData,
+  RecentActivityResponse,
+} from '../dashboard/interfaces/dashboard-data.interface';
 
 @Injectable()
 export class JobsService {
@@ -182,40 +186,105 @@ export class JobsService {
     }
   }
 
-  async getStats(userId: string): Promise<DashboardData> {
-    const totalDocuments = await this.jobRepository.count({
-      where: { userId, status: JobStatus.SUCCEEDED },
-    });
+  async getStats(userId: string, startDate?: Date, endDate?: Date): Promise<DashboardData> {
+    const finalStartDate = startDate || new Date(new Date().setDate(new Date().getDate() - 30));
+    const finalEndDate = endDate || new Date();
 
-    const recentActivity = await this.jobRepository.find({
-      where: { userId },
-      order: { createdAt: 'DESC' },
-      take: 10,
-      select: ['id', 'framework', 'status', 'createdAt'],
-    });
+    const metricsResult = await this.jobRepository
+      .createQueryBuilder('job')
+      .select('COUNT(job.id)', 'totalDocuments')
+      .addSelect(
+        "SUM(COALESCE(JSON_LENGTH(JSON_EXTRACT(job.wizardState, '$.analysisMetadata')), 0))",
+        'totalEntities',
+      )
+      .addSelect(
+        `SUM(COALESCE(
+          (SELECT COUNT(*) 
+           FROM JSON_TABLE(
+             job.wizardState, 
+             '$.analysisMetadata[*]' COLUMNS (isExcluded BOOL PATH '$.isExcluded')
+           ) jt 
+           WHERE jt.isExcluded IS NOT TRUE), 
+        0))`,
+        'anonymizedEntities',
+      )
+      .where('job.userId = :userId', { userId })
+      .andWhere('job.status = :status', { status: JobStatus.SUCCEEDED })
+      .andWhere('job.createdAt BETWEEN :startDate AND :endDate', {
+        startDate: finalStartDate,
+        endDate: finalEndDate,
+      })
+      .getRawOne();
 
-    const thirtyDaysAgo = new Date();
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    const totalDocuments = parseInt(metricsResult.totalDocuments, 10) || 0;
+    const totalEntities = parseInt(metricsResult.totalEntities, 10) || 0;
+    const anonymizedEntities = parseInt(metricsResult.anonymizedEntities, 10) || 0;
 
-    const chartData = await this.jobRepository
+    const anonymizationRate =
+      totalEntities > 0 ? Math.round((anonymizedEntities / totalEntities) * 100) : 0;
+
+    const recentActivityRaw = await this.jobRepository
+      .createQueryBuilder('job')
+      .select(['job.id', 'job.framework', 'job.status', 'job.createdAt'])
+      .addSelect("JSON_UNQUOTE(JSON_EXTRACT(job.wizardState, '$.inputData.fileName'))", 'fileName')
+      .addSelect(
+        "COALESCE(JSON_LENGTH(JSON_EXTRACT(job.wizardState, '$.analysisMetadata')), 0)",
+        'entitiesCount',
+      )
+      .where('job.userId = :userId', { userId })
+      .andWhere('job.createdAt BETWEEN :startDate AND :endDate', {
+        startDate: finalStartDate,
+        endDate: finalEndDate,
+      })
+      .orderBy('job.createdAt', 'DESC')
+      .take(10)
+      .getRawMany();
+
+    const recentActivity = recentActivityRaw.map((job) => ({
+      id: job.job_id,
+      framework: job.job_framework,
+      status: job.job_status,
+      createdAt: job.job_createdAt,
+      fileName: job.fileName || 'Untitled Document',
+      entitiesCount: parseInt(job.entitiesCount, 10) || 0,
+    }));
+
+    const chartDataRaw = await this.jobRepository
       .createQueryBuilder('job')
       .select("DATE_FORMAT(job.createdAt, '%Y-%m-%d')", 'date')
-      .addSelect('COUNT(job.id)', 'count')
+      .addSelect('COUNT(job.id)', 'documentsCount')
+      .addSelect(
+        "SUM(COALESCE(JSON_LENGTH(JSON_EXTRACT(job.wizardState, '$.analysisMetadata')), 0))",
+        'entitiesCount',
+      )
       .where('job.userId = :userId', { userId })
-      .andWhere('job.createdAt >= :thirtyDaysAgo', { thirtyDaysAgo })
+      .andWhere('job.status = :status', { status: JobStatus.SUCCEEDED })
+      .andWhere('job.createdAt BETWEEN :startDate AND :endDate', {
+        startDate: finalStartDate,
+        endDate: finalEndDate,
+      })
       .groupBy('date')
       .orderBy('date', 'ASC')
-      .getRawMany<ChartData>();
+      .getRawMany();
+
+    const chartData = chartDataRaw.map((item) => ({
+      date: item.date,
+      count: parseInt(item.documentsCount, 10),
+      documents: parseInt(item.documentsCount, 10),
+      entities: parseInt(item.entitiesCount, 10),
+    }));
 
     return {
       metrics: {
         totalDocuments,
-        entitiesDetected: 0,
-        anonymizationRate: totalDocuments > 0 ? 100 : 0,
+        entitiesDetected: totalEntities,
+        anonymizationRate,
         syntheticRecords: 0,
       },
       chartData,
-      recentActivity,
+      recentActivity: recentActivity,
+      startDate: finalStartDate.toISOString(),
+      endDate: finalEndDate.toISOString(),
     };
   }
 
@@ -337,5 +406,125 @@ export class JobsService {
         `Failed to re-anonymize text: ${error instanceof Error ? error.message : 'Unknown error'}`,
       );
     }
+  }
+
+  async getRecentActivity(
+    userId: string,
+    page: number = 1,
+    limit: number = 10,
+    startDate?: Date,
+    endDate?: Date,
+  ): Promise<RecentActivityResponse> {
+    const skip = (page - 1) * limit;
+    const finalStartDate = startDate || new Date(new Date().setDate(new Date().getDate() - 30));
+    const finalEndDate = endDate || new Date();
+
+    const queryBuilder = this.jobRepository
+      .createQueryBuilder('job')
+      .select(['job.id', 'job.framework', 'job.status', 'job.createdAt'])
+      .addSelect("JSON_UNQUOTE(JSON_EXTRACT(job.wizardState, '$.inputData.fileName'))", 'fileName')
+      .addSelect(
+        "COALESCE(JSON_LENGTH(JSON_EXTRACT(job.wizardState, '$.analysisMetadata')), 0)",
+        'entitiesCount',
+      )
+      .where('job.userId = :userId', { userId })
+      .andWhere('job.createdAt BETWEEN :startDate AND :endDate', {
+        startDate: finalStartDate,
+        endDate: finalEndDate,
+      })
+      .orderBy('job.createdAt', 'DESC');
+
+    const total = await queryBuilder.getCount();
+
+    const rawData = await queryBuilder.offset(skip).limit(limit).getRawMany();
+
+    const data = rawData.map((job) => ({
+      id: job.job_id,
+      framework: job.job_framework,
+      status: job.job_status,
+      createdAt: job.job_createdAt,
+      fileName: job.fileName || 'Untitled Document',
+      entitiesCount: parseInt(job.entitiesCount, 10) || 0,
+    }));
+
+    return {
+      data,
+      total,
+      page,
+      limit,
+    };
+  }
+
+  async getStrategiesDistribution(
+    userId: string,
+    startDate: Date,
+    endDate: Date,
+  ): Promise<DistributionData[]> {
+    const jobs = await this.jobRepository.find({
+      where: {
+        userId,
+        status: JobStatus.SUCCEEDED,
+        createdAt: Between(startDate, endDate),
+      },
+      select: ['wizardState'],
+    });
+
+    const stats: Record<string, number> = {};
+
+    jobs.forEach((job) => {
+      const strategies =
+        (job.wizardState.configSettings?.strategies as Record<string, string>) || {};
+      Object.values(strategies).forEach((strategy) => {
+        stats[strategy] = (stats[strategy] || 0) + 1;
+      });
+    });
+
+    return Object.entries(stats).map(([name, count]) => ({ name, count }));
+  }
+
+  async getFrameworksDistribution(
+    userId: string,
+    startDate: Date,
+    endDate: Date,
+  ): Promise<DistributionData[]> {
+    const result = await this.jobRepository
+      .createQueryBuilder('job')
+      .select('job.framework', 'name')
+      .addSelect('COUNT(job.id)', 'count')
+      .where('job.userId = :userId', { userId })
+      .andWhere('job.status = :status', { status: JobStatus.SUCCEEDED })
+      .andWhere('job.createdAt BETWEEN :startDate AND :endDate', { startDate, endDate })
+      .groupBy('job.framework')
+      .getRawMany();
+
+    return result.map((r) => ({
+      name: r.name || 'Custom',
+      count: parseInt(r.count, 10),
+    }));
+  }
+
+  async getEntitiesDistribution(
+    userId: string,
+    startDate: Date,
+    endDate: Date,
+  ): Promise<DistributionData[]> {
+    const result = await this.jobRepository.query(
+      `SELECT jt.entity_type AS name, COUNT(*) AS count
+     FROM jobs job,
+     JSON_TABLE(
+       job.wizardState,
+       "$.analysisMetadata[*]" COLUMNS (entity_type VARCHAR(255) PATH "$.entity_type")
+     ) AS jt
+     WHERE job.userId = ? 
+       AND job.status = ?
+       AND job.createdAt BETWEEN ? AND ?
+     GROUP BY jt.entity_type`,
+      [userId, JobStatus.SUCCEEDED, startDate, endDate],
+    );
+
+    return result.map((r: { name: string; count: string }) => ({
+      name: r.name,
+      count: parseInt(r.count, 10),
+    }));
   }
 }
