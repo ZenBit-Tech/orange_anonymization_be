@@ -7,11 +7,11 @@ import {
   DefaultValuePipe,
   ParseIntPipe,
 } from '@nestjs/common';
-import { JobsService } from '../jobs/jobs.service';
-import { JwtAuthGuard } from '../auth/guards/auth.guard';
 import { Request } from 'express';
+import { JobsService } from '@/modules/jobs/jobs.service';
+import { JwtAuthGuard } from '@/modules/auth/guards/auth.guard';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
-import { DashboardData } from './interfaces/dashboard-data.interface';
+import { DashboardData } from '@/modules/dashboard/interfaces/dashboard-data.interface';
 
 interface RequestWithUser extends Request {
   user: {

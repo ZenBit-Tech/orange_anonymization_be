@@ -1,16 +1,16 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Between, DeepPartial, Repository } from 'typeorm';
-import { AnalysisMetadata, Job, JobStatus } from './entities/job.entity';
+import { AnalysisMetadata, Job, JobStatus } from '@/modules/jobs/entities/job.entity';
 import { OnEvent } from '@nestjs/event-emitter';
-import { PresidioService } from './presidio.service';
-import { Result } from './interfaces/result.interface';
-import { AnalysisResult } from './interfaces/presidio.interface';
+import { PresidioService } from '@/modules/jobs/presidio.service';
+import { Result } from '@/modules/jobs/interfaces/result.interface';
+import { AnalysisResult } from '@/modules/jobs/interfaces/presidio.interface';
 import {
   DashboardData,
   DistributionData,
   RecentActivityResponse,
-} from '../dashboard/interfaces/dashboard-data.interface';
+} from '@/modules/dashboard/interfaces/dashboard-data.interface';
 
 @Injectable()
 export class JobsService {
