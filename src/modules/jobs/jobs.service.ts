@@ -5,11 +5,52 @@ import { AnalysisMetadata, Job, JobStatus } from './entities/job.entity';
 import { OnEvent } from '@nestjs/event-emitter';
 import { PresidioService } from './presidio.service';
 import { Result } from './interfaces/result.interface';
-import { AnalysisResult } from './interfaces/presidio.interface';
+import { AnalysisResult, Framework, HipaaMethod, Strategy } from './interfaces/presidio.interface';
 import { ChartData, DashboardData } from '../dashboard/interfaces/dashboard-data.interface';
 
 @Injectable()
 export class JobsService {
+  private readonly hipaaToPresidioMap: Record<string, string> = {
+    NAME: 'PERSON',
+    DATE: 'DATE_TIME',
+    SSN: 'US_SSN',
+    PHONE: 'PHONE_NUMBER',
+    FAX: 'PHONE_NUMBER',
+    EMAIL: 'EMAIL_ADDRESS',
+    ADDRESS: 'LOCATION',
+    URL: 'URL',
+    IP: 'IP_ADDRESS',
+    LICENSE: 'US_DRIVER_LICENSE',
+    VEHICLE: 'VEHICLE',
+    BIOMETRIC: 'BIOMETRIC',
+    PHOTO: 'PHOTO',
+    DEVICE: 'IP_ADDRESS',
+    BENEFICIARY: 'PERSON',
+    CERTIFICATE: 'US_SSN',
+    ACCOUNT: 'IBAN_CODE',
+    MRN: 'MEDICAL_RECORD_NUMBER',
+    HEALTH_PLAN: 'HEALTH_PLAN',
+    ZIP: 'LOCATION',
+  };
+
+  private readonly gdprToPresidioMap: Record<string, string> = {
+    PERSON: 'PERSON',
+    ORGANIZATION: 'ORGANIZATION',
+    LOCATION: 'LOCATION',
+    DATE: 'DATE_TIME',
+    IP: 'IP_ADDRESS',
+    GEOPOINT: 'LOCATION',
+    NATIONAL_ID: 'US_SSN',
+    ID_NUMBER: 'US_SSN',
+    PASSPORT: 'US_PASSPORT',
+    CREDIT_CARD: 'CREDIT_CARD',
+    BANK_ACCOUNT: 'IBAN_CODE',
+    EMAIL: 'EMAIL_ADDRESS',
+    PHONE: 'PHONE_NUMBER',
+    MEDICAL_RECORD_NUMBER: 'MEDICAL_RECORD_NUMBER',
+    DEVICE_ID: 'IP_ADDRESS',
+  };
+
   constructor(
     @InjectRepository(Job)
     private readonly jobRepository: Repository<Job>,
@@ -66,29 +107,6 @@ export class JobsService {
     });
     if (!job) return;
 
-    const hipaaToPresidioMap: Record<string, string> = {
-      NAME: 'PERSON',
-      DATE: 'DATE_TIME',
-      SSN: 'US_SSN',
-      PHONE: 'PHONE_NUMBER',
-      FAX: 'PHONE_NUMBER',
-      EMAIL: 'EMAIL_ADDRESS',
-      ADDRESS: 'LOCATION',
-      URL: 'URL',
-      IP: 'IP_ADDRESS',
-      LICENSE: 'US_DRIVER_LICENSE',
-      VEHICLE: 'US_PASSPORT',
-      BIOMETRIC: 'BIOMETRIC',
-      PHOTO: 'PHOTO',
-      DEVICE: 'IP_ADDRESS',
-      BENEFICIARY: 'PERSON',
-      CERTIFICATE: 'US_SSN',
-      ACCOUNT: 'IBAN_CODE',
-      MRN: 'MEDICAL_RECORD_NUMBER',
-      HEALTH_PLAN: 'US_HEALTH_NUMBER',
-      ZIP: 'LOCATION',
-    };
-
     const timeout = setTimeout(
       async () => {
         const currentJob = await this.jobRepository.findOne({ where: { id: jobId } });
@@ -111,8 +129,11 @@ export class JobsService {
       const language = configSettings.language || 'en';
       const threshold = Number(configSettings.threshold) || 0.5;
 
-      const hipaaEntities =
-        frameworkSelection === 'hipaa' && configSettings.method === 'Safe Harbor'
+      const entityMap =
+        frameworkSelection === Framework.Hipaa ? this.hipaaToPresidioMap : this.gdprToPresidioMap;
+
+      const entityKeys =
+        frameworkSelection === Framework.Hipaa && configSettings.method === HipaaMethod.SafeHarbor
           ? [
               'NAME',
               'DATE',
@@ -135,7 +156,9 @@ export class JobsService {
             ]
           : configSettings.entities || [];
 
-      const presidioEntities = hipaaEntities.map((entity) => hipaaToPresidioMap[entity] || entity);
+      const presidioEntities = [
+        ...new Set(entityKeys.map((entity) => entityMap[entity] || entity)),
+      ];
 
       const analysisResults: AnalysisResult[] = await this.presidioService.analyzeText(
         originalText,
@@ -155,9 +178,9 @@ export class JobsService {
       const userStrategies = (configSettings.strategies as Record<string, string>) || {};
       const presidioStrategies: Record<string, string> = {};
 
-      hipaaEntities.forEach((hipaaEntity) => {
-        const presidioKey = hipaaToPresidioMap[hipaaEntity] || hipaaEntity;
-        const strategy = userStrategies[hipaaEntity] || 'Replace';
+      entityKeys.forEach((entityKey) => {
+        const presidioKey = entityMap[entityKey] || entityKey;
+        const strategy = userStrategies[entityKey] || Strategy.Replace;
         presidioStrategies[presidioKey] = strategy;
       });
 
@@ -292,31 +315,13 @@ export class JobsService {
       (job.wizardState.configSettings.strategies as Record<string, string>) || {};
     const presidioStrategies: Record<string, string> = {};
 
-    const hipaaToPresidioMap: Record<string, string> = {
-      NAME: 'PERSON',
-      DATE: 'DATE_TIME',
-      SSN: 'US_SSN',
-      PHONE: 'PHONE_NUMBER',
-      FAX: 'PHONE_NUMBER',
-      EMAIL: 'EMAIL_ADDRESS',
-      ADDRESS: 'LOCATION',
-      URL: 'URL',
-      IP: 'IP_ADDRESS',
-      LICENSE: 'US_DRIVER_LICENSE',
-      VEHICLE: 'US_PASSPORT',
-      BIOMETRIC: 'BIOMETRIC',
-      PHOTO: 'PHOTO',
-      DEVICE: 'IP_ADDRESS',
-      BENEFICIARY: 'PERSON',
-      CERTIFICATE: 'US_SSN',
-      ACCOUNT: 'IBAN_CODE',
-      MRN: 'MEDICAL_RECORD_NUMBER',
-      HEALTH_PLAN: 'US_HEALTH_NUMBER',
-      ZIP: 'LOCATION',
-    };
+    const entityMap =
+      job.wizardState.frameworkSelection === Framework.Hipaa
+        ? this.hipaaToPresidioMap
+        : this.gdprToPresidioMap;
 
-    Object.entries(userStrategies).forEach(([hipaaType, strategy]) => {
-      const presidioKey = hipaaToPresidioMap[hipaaType] || hipaaType;
+    Object.entries(userStrategies).forEach(([entityKey, strategy]) => {
+      const presidioKey = entityMap[entityKey] || entityKey;
       presidioStrategies[presidioKey] = strategy;
     });
 
