@@ -43,3 +43,8 @@ export interface DistributionData {
   name: string;
   count: number;
 }
+
+export interface ParseDates {
+  start: Date;
+  end: Date;
+}

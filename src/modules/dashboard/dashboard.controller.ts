@@ -11,7 +11,12 @@ import { Request } from 'express';
 import { JobsService } from '@/modules/jobs/jobs.service';
 import { JwtAuthGuard } from '@/modules/auth/guards/auth.guard';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
-import { DashboardData } from '@/modules/dashboard/interfaces/dashboard-data.interface';
+import {
+  DashboardData,
+  DistributionData,
+  ParseDates,
+  RecentActivityResponse,
+} from '@/modules/dashboard/interfaces/dashboard-data.interface';
 
 interface RequestWithUser extends Request {
   user: {
@@ -56,7 +61,7 @@ export class DashboardController {
     @Query('limit', new DefaultValuePipe(10), ParseIntPipe) limit: number,
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
-  ) {
+  ): Promise<RecentActivityResponse> {
     return this.jobsService.getRecentActivity(
       req.user.sub,
       page,
@@ -71,7 +76,7 @@ export class DashboardController {
     @Req() req: RequestWithUser,
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
-  ) {
+  ): Promise<DistributionData[]> {
     const { start, end } = this.parseDates(startDate, endDate);
     return this.jobsService.getStrategiesDistribution(req.user.sub, start, end);
   }
@@ -81,7 +86,7 @@ export class DashboardController {
     @Req() req: RequestWithUser,
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
-  ) {
+  ): Promise<DistributionData[]> {
     const { start, end } = this.parseDates(startDate, endDate);
     return this.jobsService.getFrameworksDistribution(req.user.sub, start, end);
   }
@@ -91,12 +96,12 @@ export class DashboardController {
     @Req() req: RequestWithUser,
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
-  ) {
+  ): Promise<DistributionData[]> {
     const { start, end } = this.parseDates(startDate, endDate);
     return this.jobsService.getEntitiesDistribution(req.user.sub, start, end);
   }
 
-  private parseDates(startDate?: string, endDate?: string) {
+  private parseDates(startDate?: string, endDate?: string): ParseDates {
     return {
       start: startDate
         ? new Date(startDate)

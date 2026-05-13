@@ -21,7 +21,11 @@ export class JobsService {
   ) {}
 
   @OnEvent('job.run')
-  async handleJobRunEvent(payload: { jobId: string; userId: string; originalText: string }) {
+  async handleJobRunEvent(payload: {
+    jobId: string;
+    userId: string;
+    originalText: string;
+  }): Promise<void> {
     await this.processJob(payload.jobId, payload.userId, payload.originalText);
   }
 
