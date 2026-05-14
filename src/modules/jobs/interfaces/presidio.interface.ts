@@ -7,12 +7,10 @@ export interface AnalysisResult {
   recognition_metadata?: Record<string, unknown>;
 }
 
-interface PresidioOperator {
+export interface PresidioOperator {
   type: string;
   new_value?: string;
-  masking_char?: string;
-  chars_to_mask?: number;
-  from_end?: boolean;
+  hash_type?: string;
 }
 
 export interface AnonymizeResponse {
@@ -27,3 +25,23 @@ export interface AnonymizeResponse {
 }
 
 export type PresidioOperators = Record<string, PresidioOperator>;
+
+export enum Strategy {
+  Redact = 'Redact',
+  Replace = 'Replace',
+  Hash = 'Hash',
+  Mask = 'Mask',
+  Synthetic = 'Synthetic',
+  Token = 'Token',
+  Generalise = 'Generalise',
+  Pseudonymise = 'Pseudonymise',
+  NLP = 'NLP',
+}
+
+export enum Framework {
+  Hipaa = 'hipaa',
+}
+
+export enum HipaaMethod {
+  SafeHarbor = 'Safe Harbor',
+}
