@@ -1,13 +1,13 @@
 import { Body, Controller, Get, Post, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
-import { JwtAuthGuard } from '../auth/guards/auth.guard';
-import { GenerateSyntheticDataDto } from './dto/generate-synthetic-data.dto';
-import { FakeDataService } from './fake-data.service';
+import { JwtAuthGuard } from '@/modules/auth/guards/auth.guard';
+import { GenerateSyntheticDataDto } from '@/modules/synthetic-data/dto/generate-synthetic-data.dto';
+import { FakeDataService } from '@/modules/synthetic-data/fake-data.service';
 import {
   SupportedFieldsResponse,
   SyntheticDataResponse,
-} from './interfaces/synthetic-data.interface';
-import { SyntheticDataService } from './synthetic-data.service';
+} from '@/modules/synthetic-data/interfaces/synthetic-data.interface';
+import { SyntheticDataService } from '@/modules/synthetic-data/synthetic-data.service';
 
 @Controller('synthetic-data')
 @ApiTags('Synthetic Data')

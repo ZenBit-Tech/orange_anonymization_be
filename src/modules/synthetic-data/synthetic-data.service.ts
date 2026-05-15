@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { FakeDataService } from './fake-data.service';
+import { FakeDataService } from '@/modules/synthetic-data/fake-data.service';
 
 @Injectable()
 export class SyntheticDataService {

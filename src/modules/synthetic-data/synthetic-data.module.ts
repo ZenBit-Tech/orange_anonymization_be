@@ -1,9 +1,9 @@
 import { Module } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
-import { FakeDataService } from './fake-data.service';
-import { SyntheticDataController } from './synthetic-data.controller';
-import { SyntheticDataService } from './synthetic-data.service';
+import { FakeDataService } from '@/modules/synthetic-data/fake-data.service';
+import { SyntheticDataController } from '@/modules/synthetic-data/synthetic-data.controller';
+import { SyntheticDataService } from '@/modules/synthetic-data/synthetic-data.service';
 
 @Module({
   imports: [
