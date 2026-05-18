@@ -1,4 +1,9 @@
-import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { PresidioService } from './presidio.service';
 import { JobsService } from './jobs.service';
 import { GenerateSyntheticDataDto } from './dto/generate-synthetic-data.dto';
@@ -18,47 +23,6 @@ interface SyntheticDataGenerationResponse {
 
 @Injectable()
 export class SyntheticDataService {
-  private readonly hipaaToPresidioMap: Record<string, string> = {
-    NAME: 'PERSON',
-    DATE: 'DATE_TIME',
-    SSN: 'US_SSN',
-    PHONE: 'PHONE_NUMBER',
-    FAX: 'PHONE_NUMBER',
-    EMAIL: 'EMAIL_ADDRESS',
-    ADDRESS: 'LOCATION',
-    URL: 'URL',
-    IP: 'IP_ADDRESS',
-    LICENSE: 'US_DRIVER_LICENSE',
-    VEHICLE: 'VEHICLE',
-    BIOMETRIC: 'BIOMETRIC',
-    PHOTO: 'PHOTO',
-    DEVICE: 'IP_ADDRESS',
-    BENEFICIARY: 'PERSON',
-    CERTIFICATE: 'US_SSN',
-    ACCOUNT: 'IBAN_CODE',
-    MRN: 'MEDICAL_RECORD_NUMBER',
-    HEALTH_PLAN: 'HEALTH_PLAN',
-    ZIP: 'LOCATION',
-  };
-
-  private readonly gdprToPresidioMap: Record<string, string> = {
-    PERSON: 'PERSON',
-    ORGANIZATION: 'ORGANIZATION',
-    LOCATION: 'LOCATION',
-    DATE: 'DATE_TIME',
-    IP: 'IP_ADDRESS',
-    GEOPOINT: 'LOCATION',
-    NATIONAL_ID: 'US_SSN',
-    ID_NUMBER: 'US_SSN',
-    PASSPORT: 'US_PASSPORT',
-    CREDIT_CARD: 'CREDIT_CARD',
-    BANK_ACCOUNT: 'IBAN_CODE',
-    EMAIL: 'EMAIL_ADDRESS',
-    PHONE: 'PHONE_NUMBER',
-    MEDICAL_RECORD_NUMBER: 'MEDICAL_RECORD_NUMBER',
-    DEVICE_ID: 'IP_ADDRESS',
-  };
-
   constructor(
     private readonly jobsService: JobsService,
     private readonly presidioService: PresidioService,
@@ -151,6 +115,13 @@ export class SyntheticDataService {
   }
 
   private getEntityMap(framework: string): Record<string, string> {
-    return framework.toLowerCase() === Framework.Hipaa ? this.hipaaToPresidioMap : this.gdprToPresidioMap;
+    const jobsService = this.jobsService as unknown as {
+      hipaaToPresidioMap: Record<string, string>;
+      gdprToPresidioMap: Record<string, string>;
+    };
+
+    return framework.toLowerCase() === Framework.Hipaa
+      ? jobsService.hipaaToPresidioMap
+      : jobsService.gdprToPresidioMap;
   }
 }
