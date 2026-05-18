@@ -3,11 +3,11 @@ import { Type } from 'class-transformer';
 import { IsBoolean, IsInt, IsOptional, IsString, Max, Min } from 'class-validator';
 
 export class GenerateSyntheticDataDto {
-  @ApiProperty({ example: 1000, minimum: 1, maximum: 1000000 })
+  @ApiProperty({ example: 1000, minimum: 1, maximum: 100000 })
   @Type(() => Number)
   @IsInt()
   @Min(1)
-  @Max(1000000)
+  @Max(100000)
   records: number;
 
   @ApiProperty({ example: 'hipaa' })
