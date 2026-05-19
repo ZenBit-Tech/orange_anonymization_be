@@ -556,8 +556,6 @@ export class JobsService {
       .groupBy('job.framework')
       .getRawMany();
 
-    console.log(result);
-
     return result.map((r) => ({
       key: r.key || 'Custom',
       count: parseInt(r.count, 10),
