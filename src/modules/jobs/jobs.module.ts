@@ -5,7 +5,7 @@ import { JobsService } from './jobs.service';
 import { JobsController } from './jobs.controller';
 import { ResultsController } from './results.controller';
 import { SyntheticDataController } from './synthetic-data.controller';
-import { SyntheticDataService } from './synthetic-data.service';
+import { SyntheticDataService } from '@/modules/jobs/synthetic-data.service';
 import { PresidioService } from './presidio.service';
 import { Job } from './entities/job.entity';
 import { User } from '../users/user.entity';

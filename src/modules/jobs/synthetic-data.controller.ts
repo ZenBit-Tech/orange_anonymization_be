@@ -1,7 +1,7 @@
 import { Body, Controller, Get, Param, Post, Req, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { Request } from 'express';
-import { JwtAuthGuard } from '../auth/guards/auth.guard';
+import { JwtAuthGuard } from '@/modules/auth/guards/auth.guard';
 import { SyntheticDataService } from './synthetic-data.service';
 import { GenerateSyntheticDataDto } from './dto/generate-synthetic-data.dto';
 
