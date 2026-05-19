@@ -4,6 +4,7 @@ import { Request } from 'express';
 import { JwtAuthGuard } from '@/modules/auth/guards/auth.guard';
 import { SyntheticDataService } from './synthetic-data.service';
 import { GenerateSyntheticDataDto } from './dto/generate-synthetic-data.dto';
+import { GenerateSyntheticRequest } from '@/modules/jobs/types/generate-synthetic-request';
 
 interface RequestWithUser extends Request {
   user: {
@@ -35,6 +36,15 @@ export class SyntheticDataController {
     @Body() dto: GenerateSyntheticDataDto,
     @Req() req: RequestWithUser,
   ): Promise<unknown> {
-    return this.syntheticDataService.generate(dto, req.user.sub);
+    const payload: GenerateSyntheticRequest = {
+      records: dto.records,
+      framework: dto.framework,
+      outputFormat: dto.outputFormat,
+      useDeidentifiedSource: !!dto.useDeidentifiedSource,
+      sourceJobId: dto.sourceJobId ?? null,
+      sourceText: dto.sourceText?.trim() ?? null,
+    };
+
+    return this.syntheticDataService.generate(payload, req.user.sub);
   }
 }

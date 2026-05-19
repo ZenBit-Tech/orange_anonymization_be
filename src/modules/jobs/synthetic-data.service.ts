@@ -6,7 +6,7 @@ import {
 } from '@nestjs/common';
 import { PresidioService } from './presidio.service';
 import { JobsService } from './jobs.service';
-import { GenerateSyntheticDataDto } from './dto/generate-synthetic-data.dto';
+import { GenerateSyntheticRequest } from './types/generate-synthetic-request';
 import { AnalysisResult, Framework, Strategy } from './interfaces/presidio.interface';
 import { JobStatus } from './entities/job.entity';
 
@@ -45,7 +45,7 @@ export class SyntheticDataService {
   }
 
   async generate(
-    dto: GenerateSyntheticDataDto,
+    dto: GenerateSyntheticRequest,
     userId: string,
   ): Promise<SyntheticDataGenerationResponse> {
     const sourceText = await this.resolveSourceText(dto, userId);
@@ -66,7 +66,7 @@ export class SyntheticDataService {
     return {
       outputFormat: dto.outputFormat,
       source: dto.useDeidentifiedSource
-        ? { kind: 'deidentified-job', jobId: dto.sourceJobId }
+        ? { kind: 'deidentified-job', jobId: dto.sourceJobId! }
         : { kind: 'manual' },
       records: dto.records,
       generatedAt: new Date().toISOString(),
@@ -74,7 +74,7 @@ export class SyntheticDataService {
     };
   }
 
-  private async resolveSourceText(dto: GenerateSyntheticDataDto, userId: string): Promise<string> {
+  private async resolveSourceText(dto: GenerateSyntheticRequest, userId: string): Promise<string> {
     if (dto.useDeidentifiedSource) {
       if (!dto.sourceJobId) {
         throw new BadRequestException('sourceJobId is required when using de-identified data');
