@@ -8,8 +8,8 @@ import { SyntheticDataController } from './synthetic-data.controller';
 import { SyntheticDataService } from '@/modules/jobs/synthetic-data.service';
 import { PresidioService } from './presidio.service';
 import { Job } from './entities/job.entity';
-import { User } from '../users/user.entity';
-import { DashboardController } from '../dashboard/dashboard.controller';
+import { User } from '@/modules/users/user.entity';
+import { DashboardController } from '@/modules/dashboard/dashboard.controller';
 import { ConfigService } from '@nestjs/config';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 
