@@ -1,6 +1,6 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Between, DeepPartial, Repository } from 'typeorm';
+import { DeepPartial, Repository } from 'typeorm';
 import { AnalysisMetadata, Job, JobStatus } from '@/modules/jobs/entities/job.entity';
 import { OnEvent } from '@nestjs/event-emitter';
 import { PresidioService } from '@/modules/jobs/presidio.service';
@@ -16,6 +16,15 @@ import {
   DistributionData,
   RecentActivityResponse,
 } from '@/modules/dashboard/interfaces/dashboard-data.interface';
+
+import { DashboardFramework } from '../dashboard/dashboard.framework.type';
+
+import {
+  ChartDataRaw,
+  EntityDistributionRaw,
+  FrameworkDistributionRaw,
+  RecentActivityRaw,
+} from './types/dashboard.query.types';
 
 @Injectable()
 export class JobsService {
@@ -59,6 +68,43 @@ export class JobsService {
     MEDICAL_RECORD_NUMBER: 'MEDICAL_RECORD_NUMBER',
     DEVICE_ID: 'IP_ADDRESS',
   };
+
+  private readonly frameworkMap: Record<string, string[]> = {
+    gdpr: ['eu-gdpr'],
+    'uk-gdpr': ['uk-gdpr'],
+    'swiss-fadp': ['swiss-fadp'],
+    hipaa: ['hipaa'],
+  };
+
+  private createFilteredJobsQuery(
+    userId: string,
+    startDate: Date,
+    endDate: Date,
+    framework?: DashboardFramework,
+  ) {
+    const query = this.jobRepository
+      .createQueryBuilder('job')
+      .where('job.userId = :userId', { userId })
+      .andWhere('job.status = :status', {
+        status: JobStatus.SUCCEEDED,
+      })
+      .andWhere('job.createdAt BETWEEN :startDate AND :endDate', {
+        startDate,
+        endDate,
+      });
+
+    if (framework) {
+      const frameworks = this.frameworkMap[framework];
+
+      if (frameworks?.length) {
+        query.andWhere('job.framework IN (:...frameworks)', {
+          frameworks,
+        });
+      }
+    }
+
+    return query;
+  }
 
   constructor(
     @InjectRepository(Job)
@@ -138,7 +184,6 @@ export class JobsService {
 
       const startTime = Date.now();
       const { frameworkSelection, configSettings } = job.wizardState;
-
       const language = configSettings.language || 'en';
       const threshold = Number(configSettings.threshold) || 0.5;
 
@@ -218,10 +263,36 @@ export class JobsService {
     }
   }
 
-  async getStats(userId: string, startDate?: Date, endDate?: Date): Promise<DashboardData> {
+  async getStats(
+    userId: string,
+    startDate?: Date,
+    endDate?: Date,
+    framework?: DashboardFramework,
+  ): Promise<DashboardData> {
     const finalStartDate = startDate || new Date(new Date().setDate(new Date().getDate() - 30));
 
     const finalEndDate = endDate || new Date();
+
+    const metricsQuery = this.createFilteredJobsQuery(
+      userId,
+      finalStartDate,
+      finalEndDate,
+      framework,
+    );
+
+    const recentActivityQuery = this.createFilteredJobsQuery(
+      userId,
+      finalStartDate,
+      finalEndDate,
+      framework,
+    );
+
+    const chartQuery = this.createFilteredJobsQuery(
+      userId,
+      finalStartDate,
+      finalEndDate,
+      framework,
+    );
 
     const [
       metricsResult,
@@ -231,11 +302,17 @@ export class JobsService {
       frameworksDistribution,
       entitiesDistribution,
     ] = await Promise.all([
-      this.jobRepository
-        .createQueryBuilder('job')
+      metricsQuery
         .select('COUNT(job.id)', 'totalDocuments')
         .addSelect(
-          "SUM(COALESCE(JSON_LENGTH(JSON_EXTRACT(job.wizardState, '$.analysisMetadata')), 0))",
+          `SUM(
+          COALESCE(
+            JSON_LENGTH(
+              JSON_EXTRACT(job.wizardState, '$.analysisMetadata')
+            ),
+            0
+          )
+        )`,
           'totalEntities',
         )
         .addSelect(
@@ -257,85 +334,81 @@ export class JobsService {
         )`,
           'anonymizedEntities',
         )
-        .where('job.userId = :userId', { userId })
-        .andWhere('job.status = :status', {
-          status: JobStatus.SUCCEEDED,
-        })
-        .andWhere('job.createdAt BETWEEN :startDate AND :endDate', {
-          startDate: finalStartDate,
-          endDate: finalEndDate,
-        })
         .getRawOne(),
 
-      this.jobRepository
-        .createQueryBuilder('job')
+      recentActivityQuery
         .select(['job.id', 'job.framework', 'job.status', 'job.createdAt'])
         .addSelect(
-          "JSON_UNQUOTE(JSON_EXTRACT(job.wizardState, '$.inputData.fileName'))",
+          `JSON_UNQUOTE(
+          JSON_EXTRACT(
+            job.wizardState,
+            '$.inputData.fileName'
+          )
+        )`,
           'fileName',
         )
         .addSelect(
-          "COALESCE(JSON_LENGTH(JSON_EXTRACT(job.wizardState, '$.analysisMetadata')), 0)",
+          `COALESCE(
+          JSON_LENGTH(
+            JSON_EXTRACT(
+              job.wizardState,
+              '$.analysisMetadata'
+            )
+          ),
+          0
+        )`,
           'entitiesCount',
         )
-        .where('job.userId = :userId', { userId })
-        .andWhere('job.status = :status', {
-          status: JobStatus.SUCCEEDED,
-        })
-        .andWhere('job.createdAt BETWEEN :startDate AND :endDate', {
-          startDate: finalStartDate,
-          endDate: finalEndDate,
-        })
         .orderBy('job.createdAt', 'DESC')
         .take(10)
         .getRawMany(),
 
-      this.jobRepository
-        .createQueryBuilder('job')
+      chartQuery
         .select("DATE_FORMAT(job.createdAt, '%Y-%m-%d')", 'date')
         .addSelect('COUNT(job.id)', 'documentsCount')
         .addSelect(
-          "SUM(COALESCE(JSON_LENGTH(JSON_EXTRACT(job.wizardState, '$.analysisMetadata')), 0))",
+          `SUM(
+          COALESCE(
+            JSON_LENGTH(
+              JSON_EXTRACT(
+                job.wizardState,
+                '$.analysisMetadata'
+              )
+            ),
+            0
+          )
+        )`,
           'entitiesCount',
         )
-        .where('job.userId = :userId', { userId })
-        .andWhere('job.status = :status', {
-          status: JobStatus.SUCCEEDED,
-        })
-        .andWhere('job.createdAt BETWEEN :startDate AND :endDate', {
-          startDate: finalStartDate,
-          endDate: finalEndDate,
-        })
         .groupBy('date')
         .orderBy('date', 'ASC')
         .getRawMany(),
 
-      this.getStrategiesDistribution(userId, finalStartDate, finalEndDate),
-
-      this.getFrameworksDistribution(userId, finalStartDate, finalEndDate),
-
-      this.getEntitiesDistribution(userId, finalStartDate, finalEndDate),
+      this.getStrategiesDistribution(userId, finalStartDate, finalEndDate, framework),
+      this.getFrameworksDistribution(userId, finalStartDate, finalEndDate, framework),
+      this.getEntitiesDistribution(userId, finalStartDate, finalEndDate, framework),
     ]);
 
-    const totalDocuments = parseInt(metricsResult.totalDocuments, 10) || 0;
-    const totalEntities = parseInt(metricsResult.totalEntities, 10) || 0;
-    const anonymizedEntities = parseInt(metricsResult.anonymizedEntities, 10) || 0;
+    const totalDocuments = parseInt(metricsResult?.totalDocuments, 10) || 0;
+    const totalEntities = parseInt(metricsResult?.totalEntities, 10) || 0;
+    const anonymizedEntities = parseInt(metricsResult?.anonymizedEntities, 10) || 0;
+
     const anonymizationRate =
       totalEntities > 0 ? Math.round((anonymizedEntities / totalEntities) * 100) : 0;
 
-    const recentActivity = recentActivityRaw.map((job) => ({
+    const recentActivity = (recentActivityRaw as RecentActivityRaw[]).map((job) => ({
       id: job.job_id,
       framework: job.job_framework || 'Custom',
       status: job.job_status,
-      createdAt: job.job_createdAt,
+      createdAt: new Date(job.job_createdAt).toISOString(),
       fileName: job.fileName || 'Untitled Document',
       entitiesCount: parseInt(job.entitiesCount, 10) || 0,
     }));
 
-    const chartData = chartDataRaw.map((item) => ({
+    const chartData = (chartDataRaw as ChartDataRaw[]).map((item) => ({
       date: item.date,
-      documents: parseInt(item.documentsCount, 10),
-      entities: parseInt(item.entitiesCount, 10),
+      documents: parseInt(item.documentsCount, 10) || 0,
+      entities: parseInt(item.entitiesCount, 10) || 0,
     }));
 
     const emptyState = totalDocuments === 0;
@@ -467,35 +540,50 @@ export class JobsService {
     limit: number = 10,
     startDate?: Date,
     endDate?: Date,
+    framework?: DashboardFramework,
   ): Promise<RecentActivityResponse> {
     const skip = (page - 1) * limit;
     const finalStartDate = startDate || new Date(new Date().setDate(new Date().getDate() - 30));
     const finalEndDate = endDate || new Date();
 
-    const queryBuilder = this.jobRepository
-      .createQueryBuilder('job')
+    const queryBuilder = this.createFilteredJobsQuery(
+      userId,
+      finalStartDate,
+      finalEndDate,
+      framework,
+    )
       .select(['job.id', 'job.framework', 'job.status', 'job.createdAt'])
-      .addSelect("JSON_UNQUOTE(JSON_EXTRACT(job.wizardState, '$.inputData.fileName'))", 'fileName')
       .addSelect(
-        "COALESCE(JSON_LENGTH(JSON_EXTRACT(job.wizardState, '$.analysisMetadata')), 0)",
+        `JSON_UNQUOTE(
+        JSON_EXTRACT(
+          job.wizardState,
+          '$.inputData.fileName'
+        )
+      )`,
+        'fileName',
+      )
+      .addSelect(
+        `COALESCE(
+        JSON_LENGTH(
+          JSON_EXTRACT(
+            job.wizardState,
+            '$.analysisMetadata'
+          )
+        ),
+        0
+      )`,
         'entitiesCount',
       )
-      .where('job.userId = :userId', { userId })
-      .andWhere('job.createdAt BETWEEN :startDate AND :endDate', {
-        startDate: finalStartDate,
-        endDate: finalEndDate,
-      })
       .orderBy('job.createdAt', 'DESC');
 
     const total = await queryBuilder.getCount();
-
     const rawData = await queryBuilder.offset(skip).limit(limit).getRawMany();
 
-    const data = rawData.map((job) => ({
+    const data = (rawData as RecentActivityRaw[]).map((job) => ({
       id: job.job_id,
       framework: job.job_framework || 'Custom',
       status: job.job_status,
-      createdAt: job.job_createdAt,
+      createdAt: new Date(job.job_createdAt).toISOString(),
       fileName: job.fileName || 'Untitled Document',
       entitiesCount: parseInt(job.entitiesCount, 10) || 0,
     }));
@@ -512,21 +600,18 @@ export class JobsService {
     userId: string,
     startDate: Date,
     endDate: Date,
+    framework?: DashboardFramework,
   ): Promise<DistributionData[]> {
-    const jobs = await this.jobRepository.find({
-      where: {
-        userId,
-        status: JobStatus.SUCCEEDED,
-        createdAt: Between(startDate, endDate),
-      },
-      select: ['wizardState'],
-    });
+    const jobs = await this.createFilteredJobsQuery(userId, startDate, endDate, framework)
+      .select(['job.wizardState'])
+      .getMany();
 
     const stats: Record<string, number> = {};
 
     jobs.forEach((job) => {
       const strategies =
-        (job.wizardState.configSettings?.strategies as Record<string, string>) || {};
+        (job.wizardState?.configSettings?.strategies as Record<string, string>) || {};
+
       Object.values(strategies).forEach((strategy) => {
         stats[strategy] = (stats[strategy] || 0) + 1;
       });
@@ -542,21 +627,15 @@ export class JobsService {
     userId: string,
     startDate: Date,
     endDate: Date,
+    framework?: DashboardFramework,
   ): Promise<DistributionData[]> {
-    const result: Array<{ key: string; count: string }> = await this.jobRepository
-      .createQueryBuilder('job')
+    const result = await this.createFilteredJobsQuery(userId, startDate, endDate, framework)
       .select('job.framework', 'key')
       .addSelect('COUNT(job.id)', 'count')
-      .where('job.userId = :userId', { userId })
-      .andWhere('job.status = :status', { status: JobStatus.SUCCEEDED })
-      .andWhere('job.createdAt BETWEEN :startDate AND :endDate', {
-        startDate,
-        endDate,
-      })
       .groupBy('job.framework')
       .getRawMany();
 
-    return result.map((r) => ({
+    return (result as FrameworkDistributionRaw[]).map((r) => ({
       key: r.key || 'Custom',
       count: parseInt(r.count, 10),
     }));
@@ -566,23 +645,38 @@ export class JobsService {
     userId: string,
     startDate: Date,
     endDate: Date,
+    framework?: DashboardFramework,
   ): Promise<DistributionData[]> {
-    const result: Array<{ key: string; count: string }> = await this.jobRepository.query(
-      `SELECT jt.entity_type AS \`key\`, COUNT(*) AS count
-       FROM jobs job,
-       JSON_TABLE(
-         job.wizardState,
-         "$.analysisMetadata[*]"
-         COLUMNS (
-           entity_type VARCHAR(255) PATH "$.entity_type"
-         )
-       ) AS jt
-       WHERE job.userId = ?
-         AND job.status = ?
-         AND job.createdAt BETWEEN ? AND ?
-       GROUP BY jt.entity_type`,
-      [userId, JobStatus.SUCCEEDED, startDate, endDate],
-    );
+    const frameworks = framework ? this.frameworkMap[framework] : undefined;
+
+    const frameworkCondition = frameworks?.length
+      ? `AND job.framework IN (${frameworks.map(() => '?').join(', ')})`
+      : '';
+
+    const params = [userId, JobStatus.SUCCEEDED, startDate, endDate, ...(frameworks ?? [])];
+
+    const result = (await this.jobRepository.query(
+      `
+    SELECT
+      jt.entity_type AS \`key\`,
+      COUNT(*) AS count
+    FROM jobs job,
+    JSON_TABLE(
+      job.wizardState,
+      '$.analysisMetadata[*]'
+      COLUMNS (
+        entity_type VARCHAR(255)
+        PATH '$.entity_type'
+      )
+    ) AS jt
+    WHERE job.userId = ?
+      AND job.status = ?
+      AND job.createdAt BETWEEN ? AND ?
+      ${frameworkCondition}
+    GROUP BY jt.entity_type
+    `,
+      params,
+    )) as EntityDistributionRaw[];
 
     return result.map((r) => ({
       key: r.key,

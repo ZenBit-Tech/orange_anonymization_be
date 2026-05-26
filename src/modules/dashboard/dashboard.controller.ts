@@ -10,12 +10,12 @@ import {
 import { Request } from 'express';
 import { JobsService } from '@/modules/jobs/jobs.service';
 import { JwtAuthGuard } from '@/modules/auth/guards/auth.guard';
-import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
-import {
-  DashboardData,
-  ParseDates,
-  RecentActivityResponse,
-} from '@/modules/dashboard/interfaces/dashboard-data.interface';
+import { ApiBearerAuth, ApiOperation, ApiTags, ApiOkResponse } from '@nestjs/swagger';
+
+import { DashboardDataDto } from './dto/dashboard.data.dto';
+import { RecentActivityResponse } from '@/modules/dashboard/interfaces/dashboard-data.interface';
+import { DashboardFramework } from './dashboard.framework.type';
+import { DashboardMapper } from './mappers/dashboard.mapper';
 
 interface RequestWithUser extends Request {
   user: {
@@ -31,35 +31,57 @@ export class DashboardController {
   constructor(private readonly jobsService: JobsService) {}
 
   @Get()
+  @ApiOperation({
+    summary: 'Get dashboard analytics',
+  })
+  @ApiOkResponse({
+    type: DashboardDataDto,
+  })
   async getDashboardData(
     @Req() req: RequestWithUser,
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
-  ): Promise<DashboardData> {
+    @Query('framework') framework?: DashboardFramework,
+  ): Promise<DashboardDataDto> {
     const userId = req.user.sub;
+
     const start = startDate ? new Date(startDate) : undefined;
     const end = endDate ? new Date(endDate) : undefined;
-    const stats = await this.jobsService.getStats(userId, start, end);
+    const stats = await this.jobsService.getStats(userId, start, end, framework);
+    const dto = DashboardMapper.toDto(stats);
 
-    if (stats.metrics.totalDocuments === 0 && !startDate) {
+    if (dto.metrics.totalDocuments === 0 && !startDate) {
       return {
-        ...stats,
+        ...dto,
         message: 'Start your first analysis',
         emptyState: true,
       };
     }
 
-    return stats;
+    return dto;
   }
 
   @Get('recent-activity')
-  @ApiOperation({ summary: 'Get paginated recent activity' })
+  @ApiOperation({
+    summary: 'Get paginated recent activity',
+  })
   async getRecentActivity(
     @Req() req: RequestWithUser,
-    @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
-    @Query('limit', new DefaultValuePipe(10), ParseIntPipe) limit: number,
-    @Query('startDate') startDate?: string,
-    @Query('endDate') endDate?: string,
+
+    @Query('page', new DefaultValuePipe(1), ParseIntPipe)
+    page: number,
+
+    @Query('limit', new DefaultValuePipe(10), ParseIntPipe)
+    limit: number,
+
+    @Query('startDate')
+    startDate?: string,
+
+    @Query('endDate')
+    endDate?: string,
+
+    @Query('framework')
+    framework?: DashboardFramework,
   ): Promise<RecentActivityResponse> {
     return this.jobsService.getRecentActivity(
       req.user.sub,
@@ -67,15 +89,7 @@ export class DashboardController {
       limit,
       startDate ? new Date(startDate) : undefined,
       endDate ? new Date(endDate) : undefined,
+      framework,
     );
-  }
-
-  private parseDates(startDate?: string, endDate?: string): ParseDates {
-    return {
-      start: startDate
-        ? new Date(startDate)
-        : new Date(new Date().setDate(new Date().getDate() - 30)),
-      end: endDate ? new Date(endDate) : new Date(),
-    };
   }
 }

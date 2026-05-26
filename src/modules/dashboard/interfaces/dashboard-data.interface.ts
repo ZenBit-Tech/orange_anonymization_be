@@ -46,8 +46,3 @@ export interface DistributionData {
   key: string;
   count: number;
 }
-
-export interface ParseDates {
-  start: Date;
-  end: Date;
-}

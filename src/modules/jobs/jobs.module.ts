@@ -7,14 +7,11 @@ import { ResultsController } from './results.controller';
 import { PresidioService } from './presidio.service';
 import { Job } from './entities/job.entity';
 import { User } from '@/modules/users/user.entity';
-import { DashboardController } from '@/modules/dashboard/dashboard.controller';
 import { ConfigService } from '@nestjs/config';
-import { EventEmitterModule } from '@nestjs/event-emitter';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Job, User]),
-    EventEmitterModule.forRoot(),
     JwtModule.registerAsync({
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => ({
@@ -25,7 +22,7 @@ import { EventEmitterModule } from '@nestjs/event-emitter';
       }),
     }),
   ],
-  controllers: [JobsController, ResultsController, DashboardController],
+  controllers: [JobsController, ResultsController],
   providers: [JobsService, PresidioService],
   exports: [JobsService, PresidioService],
 })
