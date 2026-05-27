@@ -15,9 +15,10 @@ import {
   DashboardData,
   DistributionData,
   RecentActivityResponse,
-} from '@/modules/dashboard/interfaces/dashboard-data.interface';
+  StatusDistribution,
+} from '@/modules/dashboard/interfaces/dashboard.data.interface';
 
-import { DashboardFramework } from '../dashboard/dashboard.framework.type';
+import { DashboardFramework } from '@/modules/dashboard/dashboard.framework.type';
 
 import {
   ChartDataRaw,
@@ -181,7 +182,6 @@ export class JobsService {
     try {
       job.status = JobStatus.PROCESSING;
       await this.jobRepository.save(job);
-
       const startTime = Date.now();
       const { frameworkSelection, configSettings } = job.wizardState;
       const language = configSettings.language || 'en';
@@ -270,7 +270,6 @@ export class JobsService {
     framework?: DashboardFramework,
   ): Promise<DashboardData> {
     const finalStartDate = startDate || new Date(new Date().setDate(new Date().getDate() - 30));
-
     const finalEndDate = endDate || new Date();
 
     const metricsQuery = this.createFilteredJobsQuery(
@@ -301,6 +300,7 @@ export class JobsService {
       strategiesDistribution,
       frameworksDistribution,
       entitiesDistribution,
+      statusesDistribution,
     ] = await Promise.all([
       metricsQuery
         .select('COUNT(job.id)', 'totalDocuments')
@@ -387,6 +387,7 @@ export class JobsService {
       this.getStrategiesDistribution(userId, finalStartDate, finalEndDate, framework),
       this.getFrameworksDistribution(userId, finalStartDate, finalEndDate, framework),
       this.getEntitiesDistribution(userId, finalStartDate, finalEndDate, framework),
+      this.getStatusesDistribution(userId, finalStartDate, finalEndDate, framework),
     ]);
 
     const totalDocuments = parseInt(metricsResult?.totalDocuments, 10) || 0;
@@ -425,6 +426,7 @@ export class JobsService {
       strategiesDistribution,
       frameworksDistribution,
       entitiesDistribution,
+      statusesDistribution,
       emptyState,
       message: emptyState ? 'No dashboard data available' : undefined,
       startDate: finalStartDate.toISOString(),
@@ -682,5 +684,42 @@ export class JobsService {
       key: r.key,
       count: parseInt(r.count, 10),
     }));
+  }
+
+  async getStatusesDistribution(
+    userId: string,
+    startDate: Date,
+    endDate: Date,
+    framework?: DashboardFramework,
+  ): Promise<StatusDistribution[]> {
+    const raw = await this.createFilteredJobsQuery(userId, startDate, endDate, framework)
+      .select('job.status', 'key')
+      .addSelect('COUNT(job.id)', 'count')
+      .groupBy('job.status')
+      .getRawMany();
+
+    const map = raw.reduce<Record<JobStatus, number>>(
+      (acc, curr) => {
+        acc[curr.key as JobStatus] = parseInt(curr.count, 10);
+        return acc;
+      },
+      {} as Record<JobStatus, number>,
+    );
+
+    const allStatuses: JobStatus[] = [
+      JobStatus.DRAFT,
+      JobStatus.CONFIGURED,
+      JobStatus.QUEUED,
+      JobStatus.PROCESSING,
+      JobStatus.SUCCEEDED,
+      JobStatus.FAILED,
+    ];
+
+    return allStatuses.map(
+      (status): StatusDistribution => ({
+        key: status,
+        count: map[status] || 0,
+      }),
+    );
   }
 }

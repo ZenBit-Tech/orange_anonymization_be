@@ -13,7 +13,7 @@ import { JwtAuthGuard } from '@/modules/auth/guards/auth.guard';
 import { ApiBearerAuth, ApiOperation, ApiTags, ApiOkResponse } from '@nestjs/swagger';
 
 import { DashboardDataDto } from './dto/dashboard.data.dto';
-import { RecentActivityResponse } from '@/modules/dashboard/interfaces/dashboard-data.interface';
+import { RecentActivityResponse } from '@/modules/dashboard/interfaces/dashboard.data.interface';
 import { DashboardFramework } from './dashboard.framework.type';
 import { DashboardMapper } from './mappers/dashboard.mapper';
 
@@ -30,14 +30,14 @@ interface RequestWithUser extends Request {
 export class DashboardController {
   constructor(private readonly jobsService: JobsService) {}
 
-  @Get()
+  @Get('overview')
   @ApiOperation({
-    summary: 'Get dashboard analytics',
+    summary: 'Get dashboard overview analytics',
   })
   @ApiOkResponse({
     type: DashboardDataDto,
   })
-  async getDashboardData(
+  async getDashboardOverview(
     @Req() req: RequestWithUser,
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
@@ -60,12 +60,20 @@ export class DashboardController {
 
     return dto;
   }
+}
 
-  @Get('recent-activity')
+@Controller('app/analyses')
+@ApiTags('Analyses')
+@ApiBearerAuth()
+@UseGuards(JwtAuthGuard)
+export class AnalysesController {
+  constructor(private readonly jobsService: JobsService) {}
+
+  @Get()
   @ApiOperation({
-    summary: 'Get paginated recent activity',
+    summary: 'Get all analyses (paginated)',
   })
-  async getRecentActivity(
+  async getAnalyses(
     @Req() req: RequestWithUser,
 
     @Query('page', new DefaultValuePipe(1), ParseIntPipe)
