@@ -442,6 +442,27 @@ export class JobsService {
     const anonymizationRate =
       totalEntities > 0 ? Math.round((anonymizedEntities / totalEntities) * 100) : 0;
 
+    const jobsWithSynthetic = await this.createFilteredJobsQuery(
+      userId,
+      finalStartDate,
+      finalEndDate,
+      framework,
+      JobStatus.SUCCEEDED,
+    )
+      .select(['job.wizardState'])
+      .getMany();
+
+    const syntheticRecords = jobsWithSynthetic.reduce((acc, job) => {
+      const strategies =
+        (job.wizardState?.configSettings?.strategies as Record<string, string>) || {};
+
+      const syntheticCount = Object.values(strategies).filter(
+        (strategy) => strategy === Strategy.Synthetic,
+      ).length;
+
+      return acc + syntheticCount;
+    }, 0);
+
     const recentActivity = (recentActivityRaw as RecentActivityRaw[]).map((job) => ({
       id: job.job_id,
       framework: job.job_framework || 'Custom',
@@ -464,7 +485,7 @@ export class JobsService {
         totalDocuments,
         entitiesDetected: totalEntities,
         anonymizationRate,
-        syntheticRecords: 0,
+        syntheticRecords,
       },
       chartData,
       recentActivity,
