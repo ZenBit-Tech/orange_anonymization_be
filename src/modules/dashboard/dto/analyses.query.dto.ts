@@ -2,8 +2,7 @@ import { Type } from 'class-transformer';
 import { IsDateString, IsEnum, IsInt, IsOptional, IsString, Max, Min } from 'class-validator';
 
 import { JobStatus } from '@/modules/jobs/entities/job.entity';
-
-import { DashboardFramework } from '../dashboard.framework.type';
+import { DashboardFramework } from '@/modules/dashboard/dashboard.framework.type';
 
 export class AnalysesQueryDto {
   @IsOptional()

@@ -1,8 +1,9 @@
 import { Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
-import { AnalysesController, DashboardController } from './dashboard.controller';
-import { JobsModule } from '../jobs/jobs.module';
+import { JobsModule } from '@/modules/jobs/jobs.module';
 import { ConfigService } from '@nestjs/config';
+
+import { AnalysesController, DashboardController } from './dashboard.controller';
 
 @Module({
   imports: [
