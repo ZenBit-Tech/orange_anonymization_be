@@ -1,6 +1,6 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { DeepPartial, Repository } from 'typeorm';
+import { DeepPartial, Repository, SelectQueryBuilder } from 'typeorm';
 import { AnalysisMetadata, Job, JobStatus } from '@/modules/jobs/entities/job.entity';
 import { OnEvent } from '@nestjs/event-emitter';
 import { PresidioService } from '@/modules/jobs/presidio.service';
@@ -14,6 +14,7 @@ import {
 import {
   DashboardData,
   DistributionData,
+  RecentActivity,
   RecentActivityResponse,
   StatusDistribution,
 } from '@/modules/dashboard/interfaces/dashboard.data.interface';
@@ -77,26 +78,24 @@ export class JobsService {
     hipaa: ['hipaa'],
   };
 
-  private createFilteredJobsQuery(
+  private applyFilters(
+    query: SelectQueryBuilder<Job>,
     userId: string,
     startDate: Date,
     endDate: Date,
     framework?: DashboardFramework,
+    status?: JobStatus,
   ) {
-    const query = this.jobRepository
-      .createQueryBuilder('job')
+    query
       .where('job.userId = :userId', { userId })
-      .andWhere('job.status = :status', {
-        status: JobStatus.SUCCEEDED,
-      })
-      .andWhere('job.createdAt BETWEEN :startDate AND :endDate', {
-        startDate,
-        endDate,
-      });
+      .andWhere('job.createdAt BETWEEN :startDate AND :endDate', { startDate, endDate });
+
+    if (status) {
+      query.andWhere('job.status = :status', { status });
+    }
 
     if (framework) {
       const frameworks = this.frameworkMap[framework];
-
       if (frameworks?.length) {
         query.andWhere('job.framework IN (:...frameworks)', {
           frameworks,
@@ -105,6 +104,54 @@ export class JobsService {
     }
 
     return query;
+  }
+
+  private createFilteredJobsQuery(
+    userId: string,
+    startDate: Date,
+    endDate: Date,
+    framework?: DashboardFramework,
+    status?: JobStatus,
+  ) {
+    const query = this.jobRepository.createQueryBuilder('job');
+
+    return this.applyFilters(query, userId, startDate, endDate, framework, status);
+  }
+
+  private buildAnalysesTableQuery(
+    userId: string,
+    startDate: Date,
+    endDate: Date,
+    framework?: DashboardFramework,
+    status?: JobStatus,
+  ) {
+    const query = this.jobRepository.createQueryBuilder('job');
+
+    this.applyFilters(query, userId, startDate, endDate, framework, status);
+
+    return query
+      .select(['job.id', 'job.framework', 'job.status', 'job.createdAt'])
+      .addSelect(
+        `JSON_UNQUOTE(
+        JSON_EXTRACT(
+          job.wizardState,
+          '$.inputData.fileName'
+        )
+      )`,
+        'fileName',
+      )
+      .addSelect(
+        `COALESCE(
+        JSON_LENGTH(
+          JSON_EXTRACT(
+            job.wizardState,
+            '$.analysisMetadata'
+          )
+        ),
+        0
+      )`,
+        'entitiesCount',
+      );
   }
 
   constructor(
@@ -272,26 +319,12 @@ export class JobsService {
     const finalStartDate = startDate || new Date(new Date().setDate(new Date().getDate() - 30));
     const finalEndDate = endDate || new Date();
 
-    const metricsQuery = this.createFilteredJobsQuery(
-      userId,
-      finalStartDate,
-      finalEndDate,
-      framework,
-    );
+    const buildDashboardQuery = (status?: JobStatus) =>
+      this.createFilteredJobsQuery(userId, finalStartDate, finalEndDate, framework, status);
 
-    const recentActivityQuery = this.createFilteredJobsQuery(
-      userId,
-      finalStartDate,
-      finalEndDate,
-      framework,
-    );
-
-    const chartQuery = this.createFilteredJobsQuery(
-      userId,
-      finalStartDate,
-      finalEndDate,
-      framework,
-    );
+    const metricsQuery = buildDashboardQuery(JobStatus.SUCCEEDED);
+    const recentActivityQuery = buildDashboardQuery();
+    const chartQuery = buildDashboardQuery(JobStatus.SUCCEEDED);
 
     const [
       metricsResult,
@@ -360,7 +393,7 @@ export class JobsService {
           'entitiesCount',
         )
         .orderBy('job.createdAt', 'DESC')
-        .take(10)
+        .take(5)
         .getRawMany(),
 
       chartQuery
@@ -384,8 +417,20 @@ export class JobsService {
         .orderBy('date', 'ASC')
         .getRawMany(),
 
-      this.getStrategiesDistribution(userId, finalStartDate, finalEndDate, framework),
-      this.getFrameworksDistribution(userId, finalStartDate, finalEndDate, framework),
+      this.getStrategiesDistribution(
+        userId,
+        finalStartDate,
+        finalEndDate,
+        framework,
+        JobStatus.SUCCEEDED,
+      ),
+      this.getFrameworksDistribution(
+        userId,
+        finalStartDate,
+        finalEndDate,
+        framework,
+        JobStatus.SUCCEEDED,
+      ),
       this.getEntitiesDistribution(userId, finalStartDate, finalEndDate, framework),
       this.getStatusesDistribution(userId, finalStartDate, finalEndDate, framework),
     ]);
@@ -543,42 +588,41 @@ export class JobsService {
     startDate?: Date,
     endDate?: Date,
     framework?: DashboardFramework,
+    search?: string,
+    status?: JobStatus,
   ): Promise<RecentActivityResponse> {
     const skip = (page - 1) * limit;
     const finalStartDate = startDate || new Date(new Date().setDate(new Date().getDate() - 30));
     const finalEndDate = endDate || new Date();
 
-    const queryBuilder = this.createFilteredJobsQuery(
+    const queryBuilder = this.buildAnalysesTableQuery(
       userId,
       finalStartDate,
       finalEndDate,
       framework,
-    )
-      .select(['job.id', 'job.framework', 'job.status', 'job.createdAt'])
-      .addSelect(
-        `JSON_UNQUOTE(
-        JSON_EXTRACT(
-          job.wizardState,
-          '$.inputData.fileName'
-        )
-      )`,
-        'fileName',
-      )
-      .addSelect(
-        `COALESCE(
-        JSON_LENGTH(
+      status,
+    ).orderBy('job.createdAt', 'DESC');
+
+    if (search?.trim()) {
+      queryBuilder.andWhere(
+        `LOWER(
+      COALESCE(
+        JSON_UNQUOTE(
           JSON_EXTRACT(
             job.wizardState,
-            '$.analysisMetadata'
+            '$.inputData.fileName'
           )
         ),
-        0
-      )`,
-        'entitiesCount',
+        'Untitled Document'
       )
-      .orderBy('job.createdAt', 'DESC');
+    ) LIKE LOWER(:search)`,
+        {
+          search: `%${search.trim()}%`,
+        },
+      );
+    }
 
-    const total = await queryBuilder.getCount();
+    const total = await queryBuilder.clone().getCount();
     const rawData = await queryBuilder.offset(skip).limit(limit).getRawMany();
 
     const data = (rawData as RecentActivityRaw[]).map((job) => ({
@@ -603,8 +647,9 @@ export class JobsService {
     startDate: Date,
     endDate: Date,
     framework?: DashboardFramework,
+    status?: JobStatus,
   ): Promise<DistributionData[]> {
-    const jobs = await this.createFilteredJobsQuery(userId, startDate, endDate, framework)
+    const jobs = await this.createFilteredJobsQuery(userId, startDate, endDate, framework, status)
       .select(['job.wizardState'])
       .getMany();
 
@@ -630,8 +675,9 @@ export class JobsService {
     startDate: Date,
     endDate: Date,
     framework?: DashboardFramework,
+    status?: JobStatus,
   ): Promise<DistributionData[]> {
-    const result = await this.createFilteredJobsQuery(userId, startDate, endDate, framework)
+    const result = await this.createFilteredJobsQuery(userId, startDate, endDate, framework, status)
       .select('job.framework', 'key')
       .addSelect('COUNT(job.id)', 'count')
       .groupBy('job.framework')
@@ -721,5 +767,56 @@ export class JobsService {
         count: map[status] || 0,
       }),
     );
+  }
+
+  async getAnalysesExport(
+    userId: string,
+    startDate?: Date,
+    endDate?: Date,
+    framework?: DashboardFramework,
+    search?: string,
+    status?: JobStatus,
+  ): Promise<RecentActivity[]> {
+    const finalStartDate = startDate || new Date(new Date().setDate(new Date().getDate() - 30));
+
+    const finalEndDate = endDate || new Date();
+
+    const queryBuilder = this.buildAnalysesTableQuery(
+      userId,
+      finalStartDate,
+      finalEndDate,
+      framework,
+      status,
+    ).orderBy('job.createdAt', 'DESC');
+
+    if (search?.trim()) {
+      queryBuilder.andWhere(
+        `LOWER(
+        COALESCE(
+          JSON_UNQUOTE(
+            JSON_EXTRACT(
+              job.wizardState,
+              '$.inputData.fileName'
+            )
+          ),
+          'Untitled Document'
+        )
+      ) LIKE LOWER(:search)`,
+        {
+          search: `%${search.trim()}%`,
+        },
+      );
+    }
+
+    const rawData = await queryBuilder.getRawMany();
+
+    return (rawData as RecentActivityRaw[]).map((job) => ({
+      id: job.job_id,
+      framework: job.job_framework || 'Custom',
+      status: job.job_status,
+      createdAt: new Date(job.job_createdAt).toISOString(),
+      fileName: job.fileName || 'Untitled Document',
+      entitiesCount: parseInt(job.entitiesCount, 10) || 0,
+    }));
   }
 }

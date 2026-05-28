@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
-import { DashboardController } from './dashboard.controller';
+import { AnalysesController, DashboardController } from './dashboard.controller';
 import { JobsModule } from '../jobs/jobs.module';
 import { ConfigService } from '@nestjs/config';
 
@@ -17,6 +17,6 @@ import { ConfigService } from '@nestjs/config';
     }),
     JobsModule,
   ],
-  controllers: [DashboardController],
+  controllers: [DashboardController, AnalysesController],
 })
 export class DashboardModule {}
