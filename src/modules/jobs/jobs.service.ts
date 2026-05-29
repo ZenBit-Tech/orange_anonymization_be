@@ -478,7 +478,11 @@ export class JobsService {
       entities: parseInt(item.entitiesCount, 10) || 0,
     }));
 
-    const emptyState = totalDocuments === 0;
+    const hasAnyJobs = await this.jobRepository.exist({
+      where: { userId },
+    });
+
+    const emptyState = !hasAnyJobs;
 
     return {
       metrics: {
