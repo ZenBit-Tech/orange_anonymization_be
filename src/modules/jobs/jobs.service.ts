@@ -71,6 +71,31 @@ export class JobsService {
     DEVICE_ID: 'IP_ADDRESS',
   };
 
+  private readonly ALLOWED_ENTITY_TYPES = new Set([
+    'PERSON',
+    'DATE_TIME',
+    'EMAIL_ADDRESS',
+    'PHONE_NUMBER',
+    'LOCATION',
+    'US_SSN',
+    'MEDICAL_RECORD_NUMBER',
+    'ORGANIZATION',
+    'IP_ADDRESS',
+    'DEVICE_ID',
+    'US_PASSPORT',
+    'NATIONAL_ID',
+    'CREDIT_CARD',
+    'IBAN_CODE',
+    'GEOPOINT',
+    'BIOMETRIC',
+    'PHOTO',
+    'FREE_TEXT',
+    'URL',
+    'US_DRIVER_LICENSE',
+    'VEHICLE',
+    'HEALTH_PLAN',
+  ]);
+
   private readonly frameworkMap: Record<string, string[]> = {
     gdpr: ['eu-gdpr'],
     'uk-gdpr': ['uk-gdpr'],
@@ -729,26 +754,34 @@ export class JobsService {
       ? `AND job.framework IN (${frameworks.map(() => '?').join(', ')})`
       : '';
 
-    const params = [userId, JobStatus.SUCCEEDED, startDate, endDate, ...(frameworks ?? [])];
+    const params = [
+      userId,
+      JobStatus.SUCCEEDED,
+      startDate,
+      endDate,
+      ...(frameworks ?? []),
+      ...this.ALLOWED_ENTITY_TYPES,
+    ];
 
     const result = (await this.jobRepository.query(
       `
     SELECT
       jt.entity_type AS \`key\`,
       COUNT(*) AS count
-    FROM jobs job,
-    JSON_TABLE(
+    FROM jobs job
+    JOIN JSON_TABLE(
       job.wizardState,
       '$.analysisMetadata[*]'
       COLUMNS (
-        entity_type VARCHAR(255)
-        PATH '$.entity_type'
+        entity_type VARCHAR(255) PATH '$.entity_type'
       )
-    ) AS jt
+    ) jt
     WHERE job.userId = ?
       AND job.status = ?
       AND job.createdAt BETWEEN ? AND ?
       ${frameworkCondition}
+      AND jt.entity_type IS NOT NULL
+      AND jt.entity_type IN (${[...this.ALLOWED_ENTITY_TYPES].map(() => '?').join(', ')})
     GROUP BY jt.entity_type
     `,
       params,
