@@ -617,8 +617,11 @@ export class JobsService {
     status?: JobStatus,
   ): Promise<RecentActivityResponse> {
     const skip = (page - 1) * limit;
-    const finalStartDate = startDate || new Date(new Date().setDate(new Date().getDate() - 30));
-    const finalEndDate = endDate || new Date();
+    const finalStartDate = startDate
+      ? new Date(startDate)
+      : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+
+    const finalEndDate = endDate ? new Date(endDate) : new Date();
 
     const queryBuilder = this.buildAnalysesTableQuery(
       userId,
