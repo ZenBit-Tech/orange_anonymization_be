@@ -247,17 +247,6 @@ docker compose logs -f mysql
 
 ---
 
-## SPA Serving
-
-The backend serves the built React frontend as a Single Page Application using `@nestjs/serve-static`.
-
-### How it works
-
-- Built frontend assets are served from `frontend-dist/` at the project root
-- All `/api/*` routes are excluded from static serving and handled by NestJS controllers
-- Any non-API route that doesn't match a static file falls back to `index.html` (SPA client-side routing)
-- Swagger (`/api/docs`) continues to work normally
-
 ### Where to place the frontend build
 
 Place the production build output (typically the contents of the frontend's `dist/` folder) into `frontend-dist/`:
@@ -299,77 +288,3 @@ npm run start:dev
 | `npm run migration:run`      | Apply migrations                       |
 | `npm run migration:generate` | Generate migration from entity changes |
 | `npm run db:seed`            | Seed admin user                        |
-
----
-
-## Deployment
-
-The application is deployed to Heroku via **GitHub Actions + Heroku Container Registry**. See `.github/workflows/deploy.yml` for the active deploy workflow.
-
-> A `heroku.yml` file exists in the repo root and may be used as an alternative, but the current workflow uses the Container Registry flow.
-
-### Release flow (current)
-
-1. A push (or merge) to the `dev` branch triggers `.github/workflows/deploy.yml`.
-2. The deploy job checks out the backend, logs in to Heroku Container Registry, builds a Docker image from this repo's `Dockerfile`, pushes the image, and releases it to the target Heroku app.
-3. Manual deploys are also available via `workflow_dispatch` in the Actions tab.
-
-### Required secrets and variables
-
-Configure these in the backend repository's GitHub Settings:
-
-**Secrets:**
-
-| Name             | Description                                                  |
-| ---------------- | ------------------------------------------------------------ |
-| `GH_PAT`         | Read-only GitHub PAT with `repo` scope for the frontend repo |
-| `HEROKU_API_KEY` | Heroku API key for Container Registry auth and releases      |
-| `HEROKU_EMAIL`   | Heroku account email for Container Registry auth             |
-
-**Repository variables:**
-
-| Name              | Example                   | Description            |
-| ----------------- | ------------------------- | ---------------------- |
-| `HEROKU_APP_NAME` | `orange-anonymization-be` | Target Heroku app name |
-
-If your CI needs to build and inject the frontend into the backend image, extend the workflow to checkout the frontend repo and copy `orange_anonymization_fe/dist` into `frontend-dist/` before building the container.
-
-### One-time setup
-
-Before the first deploy, ensure the target Heroku app uses the container stack:
-
-```bash
-heroku stack:set container -a <HEROKU_APP_NAME>
-```
-
-If Heroku GitHub integration is connected for this app, disconnect it to avoid conflicting deploy paths (Heroku Dashboard → app → Deploy tab → Disconnect GitHub).
-
-### Post-deploy smoke test checklist
-
-After each release, verify:
-
-- [ ] `/` — SPA loads (index.html served)
-- [ ] `/some/nested/route` + browser refresh — SPA client-side routing works
-- [ ] `/api/health` — returns `{ "status": "ok" }`
-- [ ] `/api/docs` — Swagger UI loads (non-production only)
-- [ ] 1–2 authenticated API endpoints respond correctly
-
-### Rollback
-
-If a release is broken:
-
-```bash
-# List recent releases
-heroku releases -a <HEROKU_APP_NAME>
-
-# Roll back to the previous release
-heroku rollback -a <HEROKU_APP_NAME>
-```
-
-If the container fails to start, check logs:
-
-```bash
-heroku logs --tail -a <HEROKU_APP_NAME>
-```
-
-If SPA routing breaks (non-API routes return 404), verify that `frontend-dist/index.html` exists inside the running container and that `ServeStaticModule` excludes `/api/*`.
