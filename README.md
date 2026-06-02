@@ -10,8 +10,8 @@ Built with **NestJS 10 + TypeORM + MySQL + Microsoft Presidio**.
 ```
 ┌──────────────────┐     ┌───────────────────┐     ┌──────────────────┐
 │   React 19       │────>│   NestJS 10 API   │────>│  Presidio        │
-│   (separate repo)│<────│   TypeORM + MySQL  │<────│  analyzer :5001  │
-│                  │     │   Swagger /api/docs│     │  anonymizer:5002 │
+│   (separate repo)│<────│   TypeORM + MySQL │<─── │  analyzer :5001  │
+│                  │     │  Swagger /api/docs|     │  anonymizer:5002 │
 └──────────────────┘     └───────────────────┘     └──────────────────┘
      Frontend                  This repo               Docker services
 ```
@@ -78,53 +78,26 @@ npm run db:seed
 
 ---
 
-## Project Structure
+## Project Structure (concise)
 
-```
+```text
 backend/
 ├── src/
-│   ├── main.ts                          # Bootstrap, CORS, Swagger, ValidationPipe
-│   ├── app.module.ts                    # Root module, TypeORM + Config setup
-│   ├── config/
-│   │   └── configuration.ts             # Typed config (db, jwt, presidio, etc.)
-│   ├── common/
-│   │   └── guards/
-│   │       └── auth.guard.ts            # JWT auth guard
-│   ├── modules/
-│   │   ├── auth/                        # Magic link + JWT authentication
-│   │   │   ├── auth.controller.ts
-│   │   │   ├── auth.service.ts
-│   │   │   ├── auth.module.ts
-│   │   │   ├── strategies/jwt.strategy.ts
-│   │   │   └── dto/
-│   │   ├── users/                       # User CRUD
-│   │   │   ├── users.controller.ts
-│   │   │   ├── users.service.ts
-│   │   │   ├── entities/user.entity.ts  # UUID PK, @Index on email
-│   │   │   └── dto/
-│   │   ├── de-identification/           # Presidio integration
-│   │   │   ├── de-identification.controller.ts
-│   │   │   ├── de-identification.service.ts
-│   │   │   ├── presidio.service.ts      # HTTP client for Presidio
-│   │   │   ├── entities/document.entity.ts
-│   │   │   └── dto/
-│   │   ├── synthetic-data/              # Synthetic data generation
-│   │   │   ├── synthetic-data.controller.ts
-│   │   │   ├── synthetic-data.service.ts
-│   │   │   ├── entities/synthetic-record.entity.ts
-│   │   │   └── dto/
-│   │   └── dashboard/                   # Aggregated metrics
-│   │       ├── dashboard.controller.ts
-│   │       └── dashboard.service.ts
-│   └── database/
-│       ├── data-source.ts               # TypeORM CLI data source
-│       ├── migrations/                  # SQL schema migrations
-│       └── seeds/                       # Initial data
-├── docker-compose.yml                   # MySQL + Presidio containers
-├── Dockerfile                           # Production build (node:20-alpine)
+│   ├── main.ts
+│   ├── app.module.ts
+│   ├── config/                 # typed config (DB, JWT, Presidio)
+│   ├── modules/                # feature modules
+│   │   ├── auth/
+│   │   ├── users/
+│   │   ├── jobs/
+│   │   ├── dashboard/
+│   │   ├── synthetic-data/
+│   │   ├── email/
+│   │   └── health/
+│   └── database/               # data-source, migrations, seeds
+├── docker-compose.yml
+├── Dockerfile
 ├── .env.example
-├── .eslintrc.cjs
-├── .prettierrc
 ├── tsconfig.json
 └── package.json
 ```
@@ -173,28 +146,6 @@ Full documentation with request/response schemas: http://localhost:3000/api/docs
 
 ---
 
-## Environment Variables
-
-| Variable                | Default               | Required | Description                      |
-| ----------------------- | --------------------- | -------- | -------------------------------- |
-| NODE_ENV                | development           |          | Environment                      |
-| PORT                    | 3000                  |          | Server port                      |
-| DB_HOST                 | localhost             | Yes      | MySQL host                       |
-| DB_PORT                 | 3306                  | Yes      | MySQL port                       |
-| DB_USERNAME             | clinical_user         | Yes      | MySQL user                       |
-| DB_PASSWORD             |                       | Yes      | MySQL password                   |
-| DB_NAME                 | clinical_studio       | Yes      | Database name                    |
-| DB_SYNCHRONIZE          | true                  |          | Auto-sync schema (false in prod) |
-| JWT_SECRET              |                       | Yes      | JWT signing secret (64+ chars)   |
-| JWT_EXPIRES_IN          | 1h                    |          | JWT token lifetime               |
-| MAGIC_LINK_EXPIRES_IN   | 900                   |          | Magic link TTL in seconds        |
-| ENCRYPTION_KEY          |                       | Yes      | AES-128 key (16 chars)           |
-| PRESIDIO_ANALYZER_URL   | http://localhost:5001 |          | Presidio analyzer                |
-| PRESIDIO_ANONYMIZER_URL | http://localhost:5002 |          | Presidio anonymizer              |
-| CORS_ORIGIN             | http://localhost:5173 |          | Frontend URL                     |
-
----
-
 ## Testing
 
 ```bash
@@ -219,33 +170,6 @@ docker compose ps
 
 # View logs
 docker compose logs -f mysql
-```
-
----
-
-### Where to place the frontend build
-
-Place the production build output (typically the contents of the frontend's `dist/` folder) into `frontend-dist/`:
-
-```bash
-# Example: copy from the frontend repo build output
-cp -r ../orange_anonymization_fe/dist/* frontend-dist/
-```
-
-### Local validation
-
-```bash
-# 1. Place a frontend build into frontend-dist/
-cp -r ../orange_anonymization_fe/dist/* frontend-dist/
-
-# 2. Start the backend
-npm run start:dev
-
-# 3. Verify:
-#    - http://localhost:3000/         → SPA index.html
-#    - http://localhost:3000/some/route → SPA index.html (client-side routing)
-#    - http://localhost:3000/api/auth/login → API responds (POST)
-#    - http://localhost:3000/api/docs  → Swagger UI
 ```
 
 ---
