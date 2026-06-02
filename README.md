@@ -141,7 +141,6 @@ Full documentation with request/response schemas: http://localhost:3000/api/docs
 3. Backend validates token (one-time use) and returns a JWT session token.
    → JWT lifetime: controlled by `JWT_EXPIRES_IN` (default `1h`)
 
-4. All subsequent API requests must include: `Authorization: Bearer <jwt>`
 ```
 
 ---
