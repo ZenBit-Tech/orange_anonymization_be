@@ -195,30 +195,6 @@ Full documentation with request/response schemas: http://localhost:3000/api/docs
 
 ---
 
-## Code Quality Rules (PR Checklist)
-
-### General
-
-- No `any` types — enforced by ESLint
-- No `process.env` directly — use `ConfigService`
-- No `console.log` — use NestJS `Logger`
-- No magic numbers — use named constants
-- No commented-out code
-- Conventional Commits (`feat:`, `fix:`, `chore:`, `refactor:`)
-- Import order: node_modules → absolute (@/) → relative
-
-### Backend-Specific
-
-- Swagger docs for every endpoint (2xx, 4xx, 5xx)
-- UUID primary keys on all entities
-- `@Index` on frequently queried columns
-- Transactions for multi-table mutations
-- `public` only for externally used methods
-- REST API naming conventions
-- Unit tests for services
-
----
-
 ## Testing
 
 ```bash
