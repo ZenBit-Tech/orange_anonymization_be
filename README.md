@@ -1,4 +1,4 @@
-# Clinical Data Studio — Backend Template
+# De-ID Data Studio
 
 Backend service for Clinical Data De-Identification & Synthetic Data Studio.
 Built with **NestJS 10 + TypeORM + MySQL + Microsoft Presidio**.
