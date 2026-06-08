@@ -47,5 +47,8 @@ coverage/
 # Docker volumes (local data)
 mysql-data/
 
+# Frontend build artifacts (legacy — backend no longer serves the frontend)
+frontend-dist/
+
 # NestJS
 /backend/dist/

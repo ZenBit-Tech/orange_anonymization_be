@@ -1,41 +1,54 @@
+/* eslint-disable no-restricted-syntax -- this file is the designated process.env boundary */
+const toInt = (value: string | undefined, fallback: number): number => {
+  const parsed = Number.parseInt(value ?? '', 10);
+  return Number.isNaN(parsed) ? fallback : parsed;
+};
+
+const toBool = (value: string | undefined): boolean => value === 'true';
+
+const getCorsOrigin = (): string => {
+  const origin = process.env.CORS_ORIGIN ?? process.env.DEFAULT_CORS_ORIGIN;
+
+  if (!origin) {
+    throw new Error('Configuration Error: CORS_ORIGIN or DEFAULT_CORS_ORIGIN must be configured.');
+  }
+
+  return origin;
+};
 
 export default () => ({
   app: {
-    host: process.env.HOST ?? "get host error",
-    port: parseInt(process.env.PORT ?? 'get port error', 10),
-    nodeEnv: process.env.NODE_ENV ?? 'get nodeEnv error',
-    corsOrigin: process.env.CORS_ORIGIN ?? 'get cors error',
-
+    host: process.env.HOST ?? '0.0.0.0',
+    port: toInt(process.env.PORT, toInt(process.env.DEFAULT_APP_PORT, 3000)),
+    corsOrigin: getCorsOrigin(),
+    nodeEnv: process.env.NODE_ENV ?? process.env.DEFAULT_NODE_ENV ?? 'development',
+    frontendUrl: process.env.FRONTEND_URL ?? '',
   },
   db: {
-    host: process.env.DB_HOST ?? 'get db host error',
-    port: parseInt(process.env.DB_PORT ?? 'get db port error', 10),
-    username: process.env.DB_USERNAME ?? 'get db user error',
-    password: process.env.DB_PASSWORD ?? 'get db password error',
-    name: process.env.DB_NAME ?? 'get db error',
-    synchronize: process.env.DB_SYNCHRONIZE === 'true',
-    logging: process.env.DB_LOGGING === 'true',
+    host: process.env.DB_HOST ?? 'localhost',
+    port: toInt(process.env.DB_PORT, toInt(process.env.DEFAULT_DB_PORT, 3306)),
+    username: process.env.DB_USERNAME ?? process.env.DB_USER ?? '',
+    password: process.env.DB_PASSWORD ?? process.env.DB_PASS ?? '',
+    name: process.env.DB_NAME ?? '',
+    synchronize: toBool(process.env.DB_SYNCHRONIZE),
+    logging: toBool(process.env.DB_LOGGING),
   },
-  jwt: {
-    secret: process.env.JWT_SECRET ?? 'get jwt secret error',
-    expiresIn: process.env.JWT_EXPIRES_IN ?? 'exp jwt error',
-  },
-  magicLink: {
-    expiresInSeconds: parseInt(process.env.MAGIC_LINK_EXPIRES_IN ?? 'exp link error', 10),
-  },
-  presidio: {
-    analyzerUrl: process.env.PRESIDIO_ANALYZER_URL ?? 'analyzer url error',
-    anonymizerUrl: process.env.PRESIDIO_ANONYMIZER_URL ?? 'annonymizer url error',
+  auth: {
+    jwtSecret: process.env.JWT_SECRET ?? '',
+    jwtExpiresIn: process.env.JWT_EXPIRES_IN ?? '1h',
   },
   encryption: {
-    
-    key: process.env.ENCRYPTION_KEY ?? 'get enc_key error',
+    key: process.env.ENCRYPTION_KEY ?? '',
+  },
+  presidio: {
+    analyzerUrl: process.env.PRESIDIO_ANALYZER_URL ?? '',
+    anonymizerUrl: process.env.PRESIDIO_ANONYMIZER_URL ?? '',
   },
   mail: {
-    from: process.env.MAIL_FROM ?? 'get mail error',
+    host: process.env.MAIL_HOST ?? '',
+    port: toInt(process.env.MAIL_PORT, toInt(process.env.DEFAULT_MAIL_PORT, 587)),
+    user: process.env.MAIL_USER ?? '',
+    pass: process.env.MAIL_PASS ?? '',
+    from: process.env.MAIL_FROM ?? process.env.MAIL_USER ?? '',
   },
-  seed:{
-    adminEmail:process.env.SEED_ADMIN_EMAIL ?? "get admin email error",
-    run:process.env.RUN_SEEDS ?? 'run_seed error'
-  }
 });

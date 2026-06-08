@@ -1,9 +1,9 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
+import { Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
-import type { Repository } from 'typeorm';
-import { User } from './entities/user.entity';
-import type { CreateUserDto } from './dto/create-user.dto';
-import type { UpdateUserDto } from './dto/update-user.dto';
+import { User } from './user.entity';
+import { UserResponse } from './interfaces/user-response.interface';
+import { UserMapper } from './mappers/user.mapper';
 
 @Injectable()
 export class UsersService {
@@ -12,83 +12,63 @@ export class UsersService {
     private readonly usersRepository: Repository<User>,
   ) {}
 
-  async create(createUserDto: CreateUserDto): Promise<User> {
-    const user = this.usersRepository.create({
-      ...createUserDto,
-      isActive: true,
-    });
-    return this.usersRepository.save(user);
-  }
+  async upsert(email: string): Promise<User> {
+    await this.usersRepository
+      .createQueryBuilder()
+      .insert()
+      .into(User)
+      .values({ email })
+      .orIgnore()
+      .execute();
 
-  async findAll(): Promise<User[]> {
-    return this.usersRepository.find({ order: { createdAt: 'DESC' } });
-  }
+    const user = await this.usersRepository.findOneBy({ email });
 
-  async findOne(id: string): Promise<User> {
-    const user = await this.usersRepository.findOneBy({ id });
-    if (!user) throw new NotFoundException(`User ${id} not found`);
+    if (!user) {
+      throw new InternalServerErrorException('User was not created or found');
+    }
+
     return user;
   }
 
-  async findByEmail(email: string): Promise<User | null> {
-    return this.usersRepository.findOneBy({ email });
+  async findById(id: string): Promise<User | null> {
+    return this.usersRepository.findOne({
+      where: { id },
+    });
   }
 
+  async getCurrentUser(userId: string): Promise<UserResponse> {
+    const user = await this.findById(userId);
 
-  async findByEmailWithToken(email: string): Promise<User | null> {
-    return this.usersRepository
-      .createQueryBuilder('user')
-      .addSelect('user.magicLinkToken')
-      .addSelect('user.magicLinkExpiresAt')
-      .where('user.email = :email', { email })
-      .getOne();
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    return UserMapper.toResponse(user);
   }
 
   async findByMagicLinkToken(token: string): Promise<User | null> {
-    return this.usersRepository
-      .createQueryBuilder('user')
-      .addSelect('user.magicLinkToken')
-      .addSelect('user.magicLinkExpiresAt')
-      .where('user.magicLinkToken = :token', { token })
-      .getOne();
-  }
-
-  async update(id: string, updateUserDto: UpdateUserDto): Promise<User> {
-    const user = await this.findOne(id);
-    Object.assign(user, updateUserDto);
-    return this.usersRepository.save(user);
-  }
-
-  async setMagicLinkToken(
-    userId: string,
-    token: string,
-    expiresAt: Date,
-  ): Promise<void> {
-    await this.usersRepository.update(userId, {
-      magicLinkToken: token,
-      magicLinkExpiresAt: expiresAt,
+    return this.usersRepository.findOne({
+      where: { magicLinkToken: token },
     });
   }
 
-  async clearMagicLinkToken(userId: string): Promise<void> {
-    await this.usersRepository.update(userId, {
-      magicLinkToken: null,
-      magicLinkExpiresAt: null,
-    });
+  async updateMagicLink(id: string, token: string, expiresAt: Date): Promise<void> {
+    await this.usersRepository.update(
+      { id },
+      {
+        magicLinkToken: token,
+        magicLinkExpiresAt: expiresAt,
+      },
+    );
   }
 
-  async activate(userId: string): Promise<void> {
-    await this.usersRepository.update(userId, { isActive: true });
-  }
-
-  async findOrCreate(email: string): Promise<User> {
-    const existing = await this.findByEmail(email);
-    if (existing) return existing;
-    return this.create({ email });
-  }
-
-  async remove(id: string): Promise<void> {
-    const user = await this.findOne(id);
-    await this.usersRepository.remove(user);
+  async clearMagicLink(id: string): Promise<void> {
+    await this.usersRepository.update(
+      { id },
+      {
+        magicLinkToken: null,
+        magicLinkExpiresAt: null,
+      },
+    );
   }
 }

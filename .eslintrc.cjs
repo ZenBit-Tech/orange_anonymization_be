@@ -1,7 +1,7 @@
 module.exports = {
   parser: '@typescript-eslint/parser',
   parserOptions: {
-    project: 'tsconfig.json',
+    project: ['./tsconfig.json', './test/tsconfig.e2e.json'],
     tsconfigRootDir: __dirname,
     sourceType: 'module',
   },
@@ -21,7 +21,7 @@ module.exports = {
     '@typescript-eslint/interface-name-prefix': 'off',
     '@typescript-eslint/explicit-function-return-type': 'off',
     '@typescript-eslint/explicit-module-boundary-types': 'off',
-    '@typescript-eslint/no-explicit-any': 'error',     // zero `any`
+    '@typescript-eslint/no-explicit-any': 'error', // zero `any`
     '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
 
     // ─── NestJS conventions ───────────────────────────────────────────────────

@@ -1,13 +1,23 @@
 import { Module } from '@nestjs/common';
-import { TypeOrmModule } from '@nestjs/typeorm';
-import { Document } from '@/modules/de-identification/entities/document.entity';
-import { SyntheticRecord } from '@/modules/synthetic-data/entities/synthetic-record.entity';
-import { DashboardService } from './dashboard.service';
-import { DashboardController } from './dashboard.controller';
+import { JwtModule } from '@nestjs/jwt';
+import { JobsModule } from '@/modules/jobs/jobs.module';
+import { ConfigService } from '@nestjs/config';
+
+import { AnalysesController, DashboardController } from './dashboard.controller';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Document, SyntheticRecord])],
-  controllers: [DashboardController],
-  providers: [DashboardService],
+  imports: [
+    JwtModule.registerAsync({
+      inject: [ConfigService],
+      useFactory: (configService: ConfigService) => ({
+        secret: configService.get<string>('auth.jwtSecret'),
+        signOptions: {
+          expiresIn: configService.get<string>('auth.jwtExpiresIn'),
+        },
+      }),
+    }),
+    JobsModule,
+  ],
+  controllers: [DashboardController, AnalysesController],
 })
 export class DashboardModule {}

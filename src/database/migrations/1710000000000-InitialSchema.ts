@@ -53,11 +53,21 @@ export class InitialSchema1710000000000 implements MigrationInterface {
         INDEX \`IDX_synthetic_records_userId\` (\`userId\`)
       ) ENGINE=InnoDB
     `);
+    await queryRunner.query(`
+      CREATE TABLE IF NOT EXISTS \`word_counts\` (
+        \`userId\`    VARCHAR(36)  NOT NULL,
+        \`word\`      VARCHAR(20)  NOT NULL,
+        \`count\`     INT          NOT NULL DEFAULT 0,
+        PRIMARY KEY (\`userId\`, \`word\`),
+        INDEX \`IDX_word_counts_userId\` (\`userId\`)
+      ) ENGINE=InnoDB
+    `);
   }
 
   async down(queryRunner: QueryRunner): Promise<void> {
-    await queryRunner.query(`DROP TABLE \`synthetic_records\``);
-    await queryRunner.query(`DROP TABLE \`documents\``);
-    await queryRunner.query(`DROP TABLE \`users\``);
+    await queryRunner.query(`DROP TABLE IF EXISTS \`word_counts\``);
+    await queryRunner.query(`DROP TABLE IF EXISTS \`synthetic_records\``);
+    await queryRunner.query(`DROP TABLE IF EXISTS \`documents\``);
+    await queryRunner.query(`DROP TABLE IF EXISTS \`users\``);
   }
 }

@@ -1,33 +1,27 @@
-
 import { Module } from '@nestjs/common';
+import { EventEmitterModule } from '@nestjs/event-emitter';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import configuration from './config/configuration';
-import { TestDbModule } from "./database/test.module"
-// Feature modules
-import { AuthModule } from './modules/auth/auth.module';
-import { UsersModule } from './modules/users/users.module';
-import { DeIdentificationModule } from './modules/de-identification/de-identification.module';
-import { SyntheticDataModule } from './modules/synthetic-data/synthetic-data.module';
-import { DashboardModule } from './modules/dashboard/dashboard.module';
+import { MailerModule } from '@nestjs-modules/mailer';
 
-// Entities — TypeORM needs to know about all entities for auto-migrations
-import { User } from './modules/users/entities/user.entity';
-import { Document } from './modules/de-identification/entities/document.entity';
-import { SyntheticRecord } from './modules/synthetic-data/entities/synthetic-record.entity';
+import configuration from './config/configuration';
+import { AuthModule } from './modules/auth/auth.module';
+import { JobsModule } from './modules/jobs/jobs.module';
+import { DashboardModule } from './modules/dashboard/dashboard.module';
+import { HealthModule } from './modules/health/health.module';
+import { SyntheticDataModule } from './modules/synthetic-data/synthetic-data.module';
+const DB_RETRY_ATTEMPTS = 10;
+const DB_RETRY_DELAY = 3_000;
 
 @Module({
   imports: [
-    //  Config 
     ConfigModule.forRoot({
-      isGlobal: true,               // Global re-injectable config
-      load: [configuration],        
+      isGlobal: true,
+      load: [configuration],
       envFilePath: '.env',
     }),
-
-    //  Database 
+    EventEmitterModule.forRoot(),
     TypeOrmModule.forRootAsync({
-      // registerAsync reads configuration AFTER ConfigModule has loaded .env
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => ({
@@ -37,23 +31,45 @@ import { SyntheticRecord } from './modules/synthetic-data/entities/synthetic-rec
         username: configService.get<string>('db.username'),
         password: configService.get<string>('db.password'),
         database: configService.get<string>('db.name'),
-        entities: [User, Document, SyntheticRecord],
+        autoLoadEntities: true,
         synchronize: configService.get<boolean>('db.synchronize') ?? false,
         logging: configService.get<boolean>('db.logging') ?? false,
-        retryAttempts: 10,
-        retryDelay: 3000,
+        retryAttempts: DB_RETRY_ATTEMPTS,
+        retryDelay: DB_RETRY_DELAY,
       }),
     }),
+    MailerModule.forRootAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: (configService: ConfigService) => {
+        const mailUser = configService.get<string>('MAIL_USER') ?? '';
+        const fromAddress = configService.get<string>('MAIL_FROM') ?? mailUser;
 
+        if (!fromAddress) {
+          throw new Error('Mail config invalid: set MAIL_FROM or MAIL_USER');
+        }
 
-    // Feature Modules 
+        return {
+          transport: {
+            host: configService.get<string>('mail.host') ?? 'smtp.gmail.com',
+            port: configService.get<number>('MAIL_PORT') ?? 587,
+            secure: false,
+            auth: {
+              user: mailUser,
+              pass: configService.get<string>('MAIL_PASS') ?? '',
+            },
+          },
+          defaults: {
+            from: fromAddress,
+          },
+        };
+      },
+    }),
     AuthModule,
-    UsersModule,
-    DeIdentificationModule,
-    SyntheticDataModule,
+    JobsModule,
     DashboardModule,
-    TestDbModule
-  ]
-  
+    HealthModule,
+    SyntheticDataModule,
+  ],
 })
 export class AppModule {}
